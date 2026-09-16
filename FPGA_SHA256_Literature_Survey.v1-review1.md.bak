@@ -1,0 +1,199 @@
+# Literature Survey
+
+## Unrolling Analysis of a SHA-256 Hardware Accelerator on Zynq-7000
+
+**Author:** Amritha S (23BEC1368)
+**Platform:** ZedBoard / XC7Z020 · Vivado 2022.2 · Vitis 2022.2
+**Date:** July 2026
+
+---
+
+> **Verification notice.** I do not have web or database search access, so every citation below is reconstructed from memory. FIPS 180-4 and the well-known CHES / FPL papers are famous enough that titles and authors are very likely correct; years, venues and author orderings still need checking, and entries marked `[VERIFY]` are ones where confidence is lower. Confirm on IEEE Xplore, SpringerLink or the IACR ePrint archive before submission. Search strings are in §8.
+>
+> **Advantage of this topic:** the primary reference — NIST FIPS PUB 180-4 — is free, permanent and authoritative, and NIST's Cryptographic Algorithm Validation Program publishes additional test vectors. There is no ambiguity about ground truth.
+
+---
+
+## 1. Scope
+
+| Cluster | Question |
+|---|---|
+| A | What is the algorithm, and what is the authoritative specification? |
+| B | How do hardware implementations shorten the critical path? |
+| C | What does unrolling / pipelining actually buy for a hash function? |
+| D | What have FPGA implementations achieved, and on what devices? |
+| E | What standards and tools govern the integration? |
+
+---
+
+## 2. Cluster A — Specification and Cryptographic Context
+
+1. **NIST** — *Secure Hash Standard (SHS)*. **FIPS PUB 180-4**, August 2015 (originally 180-2, 2002).
+   **The primary reference.** Complete specification of SHA-256: padding (§5.1.1), the initial hash values (§5.3.3), the K constants (§4.2.2), the six logical functions (§4.1.2) and the compression loop (§6.2.2). Contains worked examples.
+   *Everything in this project's verification strategy derives from this document.* Cite it more than any other source.
+
+2. **NIST** — *Cryptographic Algorithm Validation Program (CAVP), Secure Hashing test vectors.*
+   Short-message, long-message and Monte Carlo test vector sets. **Use the long-message set for your soak testing**; it exercises multi-block chaining, which single-block vectors do not.
+
+3. **NIST** — *Recommendation for Applications Using Approved Hash Algorithms*. **SP 800-107**.
+   Security strengths and appropriate uses of each hash. Useful for one paragraph justifying why SHA-256 specifically, rather than SHA-1 (broken) or SHA-3 (a different construction entirely).
+
+4. **Wang, X., Yin, Y. L. and Yu, H.** — "Finding Collisions in the Full SHA-1." *CRYPTO*, 2005.
+   The theoretical break of SHA-1 that drove migration to SHA-2. Historical motivation for why SHA-256 is the deployed standard.
+
+5. **Stevens, M., Bursztein, E., Karpman, P., Albertini, A. and Markov, Y.** — "The First Collision for Full SHA-1." *CRYPTO*, 2017. `[VERIFY]`
+   The practical SHAttered collision. One sentence in the introduction establishes that SHA-256 is not merely conventional but necessary.
+
+6. **Gilbert, H. and Handschuh, H.** — "Security Analysis of SHA-256 and Sisters." *Selected Areas in Cryptography (SAC)*, 2003. `[VERIFY]`
+   Early cryptanalysis of the SHA-2 family. Cite for the claim that SHA-256 remains unbroken; do not overstate — this is a hardware project, not a cryptanalysis one.
+
+---
+
+## 3. Cluster B — Critical-Path Optimisation
+
+**This is the cluster that matters most.** In SHA-256 the critical path is the five-input modulo-2³² addition forming T1. Every serious hardware paper is about shortening it.
+
+7. **Chaves, R., Kuzmanov, G., Sousa, L. and Vassiliadis, S.** — "Improving SHA-2 Hardware Implementations." *CHES*, 2006.
+   **The single most relevant paper to this project.** Introduces *operation rescheduling*: precompute part of T1 one cycle ahead so the adder chain is split across the register boundary, shortening the critical path without changing the round count. Also covers carry-save adder (CSA) use in the round.
+   *This is the obvious "how would you improve it?" answer in your viva — cite it, and list it as documented future work.*
+
+8. **Dadda, L., Macchetti, M. and Owen, J.** — "The Design of a High Speed ASIC Unit for the Hash Function SHA-256 (384, 512)." *DATE*, 2004. `[VERIFY]`
+   Carry-save adder trees in the compression function. Relevant because your five-input adder is the bottleneck and CSA is the standard remedy.
+
+9. **McEvoy, R. P., Crowe, F. M., Murphy, C. C. and Marnane, W. P.** — "Optimisation of the SHA-2 Family of Hash Functions on FPGAs." *IEEE Computer Society Annual Symposium on VLSI (ISVLSI)*, 2006.
+   FPGA-specific optimisation: pipelining the message schedule separately from the compression, and balancing the two. **Directly relevant to your observation that the schedule unrolls for free while the compression does not.**
+
+10. **Michail, H., Kakarountas, A. P., Milidonis, A. and Goutis, C. E.** — "A Top-Down Design Methodology for Ultrahigh-Performance Hashing Cores." *IEEE Transactions on Dependable and Secure Computing*, 2009. `[VERIFY]`
+    Systematic treatment of unrolling and pipelining for hash cores.
+
+11. **Sklavos, N. and Koufopavlou, O.** — "On the Hardware Implementations of the SHA-2 (256, 384, 512) Hash Functions." *ISCAS*, 2003. `[VERIFY]`
+    Early comparative implementation study across the SHA-2 family.
+
+---
+
+## 4. Cluster C — Unrolling, Pipelining and Why Hashes Resist Both
+
+This cluster supports the project's central argument. It is worth stating the argument explicitly rather than assuming the reader infers it.
+
+12. **The structural argument** (make this yourself, in the report, and cite refs. 7 and 9 in support):
+
+    > In a block cipher operating in ECB mode, blocks are independent. An unrolled implementation can therefore be pipelined: registers between stages hold the combinational depth per stage constant, maximum frequency is preserved, and throughput scales linearly with area.
+    >
+    > A hash function cannot do this within one message. Round *t+1* consumes the working variables produced by round *t*, and consecutive blocks chain through the hash value. Two unrolled rounds cannot be separated by a register without forfeiting the cycle-count saving that motivated unrolling. The adder chains stack in series, and maximum frequency must fall.
+    >
+    > The design is therefore a net throughput improvement if and only if the frequency retained exceeds the cycle-count ratio: **Fmax(B)/Fmax(A) > 34/66 = 0.515.**
+
+    Deriving this inequality in the report — and stating it *before* the measurement — is the single most valuable paragraph you can write. Most student reports measure first and rationalise afterwards.
+
+13. **Ting, K. K., Yuen, S. C. L., Lee, K.-H. and Leong, P. H. W.** — "An FPGA Based SHA-256 Processor." *Field-Programmable Logic and Applications (FPL)*, 2002.
+    One of the earliest FPGA SHA-256 designs. Establishes the iterative baseline architecture your Configuration A follows.
+
+14. **Sklavos, N. and Koufopavlou, O.** — "Implementation of the SHA-2 Hash Family Standard Using FPGAs." *The Journal of Supercomputing*, 2005. `[VERIFY]`
+    FPGA implementations with area and throughput figures across the family.
+
+15. **Multi-stream interleaving — the correct way to parallelise a hash.**
+    Because *independent messages* have no dependency between them, N independent hashes can be interleaved through an N-stage pipelined round unit, giving N× throughput for roughly N× the working registers but the *same* round logic. This is the technique used in high-throughput hashing hardware, including Bitcoin mining ASICs.
+    **This is your documented future work and the right answer if asked "how would you actually make this fast?"** Contrast it explicitly with within-message unrolling, which is what you measure.
+
+---
+
+## 5. Cluster D — Reported FPGA Implementations
+
+For your comparison table. Columns: device, architecture, slices/LUTs, Fmax, throughput, throughput-per-area.
+
+| Work | Approach | What it establishes |
+|---|---|---|
+| Ting et al., FPL 2002 (ref. 13) | Iterative, 1 round/cycle | The baseline architecture |
+| Sklavos & Koufopavlou, ISCAS 2003 (ref. 11) | Comparative SHA-2 family | Cross-variant area figures |
+| Dadda et al., DATE 2004 (ref. 8) | CSA-based high-speed ASIC | The adder is the bottleneck |
+| Chaves et al., CHES 2006 (ref. 7) | Operation rescheduling | Critical path can be shortened without more rounds |
+| McEvoy et al., ISVLSI 2006 (ref. 9) | FPGA-specific pipelining | Schedule and compression balance differently |
+| Michail et al., TDSC 2009 (ref. 10) | Unrolling and pipelining methodology | Systematic design-space treatment |
+
+**Necessary caveat for the report:** these results date from 2002–2009 on Virtex-II, Virtex-4 and Virtex-5 class devices. Raw throughput comparison across fifteen-plus years of process technology is not meaningful. What transfers is the **structural relationship** — the ratio between iterative and unrolled configurations — and that is what this project re-measures on 28 nm silicon under identical constraints. Stating this limitation is more credible than a comparison table implying you have beaten a 2006 result.
+
+---
+
+## 6. Cluster E — Integration Standards and Tools
+
+17. **ARM** — *AMBA AXI and ACE Protocol Specification* (IHI 0022). TVALID/TREADY/TLAST semantics for your waveform deliverable.
+18. **Xilinx** — *AXI Reference Guide* (UG1037).
+19. **Xilinx** — *AXI DMA LogiCORE IP Product Guide* (PG021). Register map and driver model for the Vitis application.
+20. **Xilinx** — *Zynq-7000 SoC Technical Reference Manual* (UG585). AXI-HP ports and PS–PL paths.
+21. **Xilinx** — *Vivado Design Suite User Guide: Synthesis* (UG901). **Read the ROM inference section before deciding whether the K constants live in LUTs or BRAM** — it is a genuine area experiment with a measurable outcome.
+22. **Avnet** — *ZedBoard Hardware User's Guide*.
+
+---
+
+## 7. Synthesis and Positioning
+
+**What the literature establishes:**
+- The five-input modulo-2³² addition forming T1 is the critical path of any SHA-256 implementation (refs. 7, 8).
+- Operation rescheduling and carry-save addition can shorten that path without changing the round count (refs. 7, 8).
+- The message schedule and the compression function have different parallelisation properties and should be optimised separately (ref. 9).
+- The iterative one-round-per-cycle architecture is the settled baseline (ref. 13).
+
+**How to position this project honestly:**
+
+> SHA-256 hardware is a mature field, and the architectural options were mapped between 2002 and 2009. This project does not claim a new architecture or a record throughput. It formulates the unrolling trade-off as an explicit, falsifiable inequality; builds two configurations from identical submodules so the comparison is a controlled experiment rather than a comparison of unrelated designs; verifies both exhaustively against NIST vectors including multi-block chaining; and measures the outcome on a current low-cost SoC FPGA with complete PS–PL integration.
+
+Legitimate claims:
+
+1. **A stated hypothesis with a numeric threshold** — Fmax(B)/Fmax(A) > 0.515 — declared before measurement.
+2. **A controlled comparison** — the two configurations share `sha256_round_comb` exactly; only unroll depth and control differ.
+3. **Hierarchical verification** at eight levels, including per-round intermediate states, not end-to-end digest matching alone.
+4. **Cross-validation between architectures**, an independent self-check requiring no external reference.
+5. **Honest accounting of the modest software speedup** and the structural reason for it.
+
+Do not claim novelty in SHA-256 architecture. A modest accurate claim survives questioning; an inflated one does not.
+
+---
+
+## 8. Search Strings for Verification
+
+```
+SHA-256 FPGA implementation throughput area
+"operation rescheduling" SHA-2 hardware critical path
+SHA-256 unrolling pipelining hash FPGA
+"carry save adder" SHA-256 compression function
+SHA-2 hash core Virtex throughput per slice
+"message schedule" SHA-256 hardware optimisation
+SHA-256 Zynq AXI accelerator
+multi-stream interleaved hash pipeline throughput
+```
+
+Prefer **CHES**, **FPL**, **FCCM**, **DATE**, **ISVLSI** and **IEEE Transactions on VLSI Systems / TDSC**. The IACR ePrint archive (eprint.iacr.org) hosts free preprints of most CHES papers.
+
+---
+
+## 9. Recommended Reading Order
+
+1. **NIST FIPS 180-4** (ref. 1) — read it properly, including the worked examples
+2. **Chaves et al., CHES 2006** (ref. 7) — operation rescheduling; your future-work citation
+3. **McEvoy et al., ISVLSI 2006** (ref. 9) — schedule vs compression, FPGA-specific
+4. **Ting et al., FPL 2002** (ref. 13) — the iterative baseline
+5. **Dadda et al., DATE 2004** (ref. 8) — why the adder dominates
+6. **Michail et al., TDSC 2009** (ref. 10) — unrolling methodology
+7. NIST CAVP vectors (ref. 2) — for the soak test
+8. **Xilinx UG901** (ref. 21) — before deciding LUT vs BRAM for the K ROM
+9. **Xilinx PG021** (ref. 19) — before touching the DMA
+10. Stevens et al., CRYPTO 2017 (ref. 5) — one motivational sentence
+
+---
+
+## 10. Anticipated Questions and Answers
+
+| Question | Answer |
+|---|---|
+| "Why no DSP slices?" | SHA-256 contains no multiplication. Only 32-bit addition, XOR, AND and fixed bit reorderings. There is nothing for a DSP to do. |
+| "Why are the rotations free?" | ROTR and SHR are compile-time-constant bit reorderings. In fabric they are routing — zero LUTs, zero delay. Each Σ function is one 3-input XOR per bit. |
+| "Why store only 16 schedule words?" | W[t] depends only on W[t−2], W[t−7], W[t−15], W[t−16]. A 16-deep window is sufficient; storing all 64 wastes 1536 bits for no benefit. |
+| "Why does unrolling cost frequency here but not in AES?" | AES-ECB blocks are independent, so unrolled rounds can be pipelined and depth per stage stays constant. SHA-256 rounds are data-dependent — a register between them would forfeit the cycle saving, so the adder chains stack. |
+| "Your speedup over software is only ~3×. Isn't that poor?" | It is expected. SHA-256 is 32-bit add, XOR and rotate — exactly what a general-purpose ALU does in one cycle each. Unlike AES's GF(2⁸) arithmetic, there is nothing the CPU must emulate. The value here is offload and deterministic latency, not raw speedup. |
+| "How would you actually make this fast?" | Multi-stream interleaving. Independent messages have no dependency, so N of them pipeline perfectly through an N-stage round unit — N× throughput for N× registers but the same round logic. That is what high-throughput hashing hardware does. |
+| "How would you shorten the critical path without unrolling?" | Operation rescheduling (Chaves et al., CHES 2006): precompute part of T1 one cycle ahead so the adder chain splits across the register boundary. Also carry-save adders in the five-input sum. |
+| "Why is padding in software?" | Deliberate scope decision. Padding is byte-alignment bookkeeping and a length counter; compression is the expensive part. A hardware padder adds no insight into the unrolling question and is documented as future work. |
+
+---
+
+*End of survey.*

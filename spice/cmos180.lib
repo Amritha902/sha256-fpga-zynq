@@ -1,0 +1,117 @@
+*=============================================================================
+*  cmos180.lib -- generic 180 nm static CMOS cell library for ngspice
+*
+*  PURPOSE
+*  -------
+*  Transistor-level energy comparison of a plain ripple-carry adder against
+*  the same adder wrapped in operand-dependent bypass logic.
+*
+*  HONEST SCOPE OF THESE MODELS
+*  ----------------------------
+*  These are generic SPICE LEVEL-1 MOSFET cards with 180 nm-class parameters.
+*  They are NOT a foundry PDK and carry no process authority.
+*
+*  What that means for the results:
+*      VALID    : the RATIO of energy between two structurally similar
+*                 circuits simulated with the same models and the same
+*                 stimulus.  Both designs share the identical full-adder
+*                 cell, so systematic model error largely cancels.
+*      NOT VALID: absolute energy in joules, absolute delay, or any claim
+*                 about a specific foundry process.
+*
+*  Report the ratio and the break-even point.  Do not report the absolute
+*  picojoules as though they were silicon measurements -- that is the same
+*  mistake as quoting Vivado's power estimator as a measurement.
+*=============================================================================
+
+.model NMOS_M nmos (level=1 vto=0.42 kp=170u gamma=0.50 phi=0.70 lambda=0.04
++ tox=4.1n cgso=3.4e-10 cgdo=3.4e-10 cgbo=1.0e-10
++ cj=1.0e-3 cjsw=2.2e-10 mj=0.5 mjsw=0.33 pb=0.90 rsh=6)
+
+.model PMOS_M pmos (level=1 vto=-0.42 kp=40u gamma=0.60 phi=0.70 lambda=0.06
++ tox=4.1n cgso=3.4e-10 cgdo=3.4e-10 cgbo=1.0e-10
++ cj=1.2e-3 cjsw=2.5e-10 mj=0.5 mjsw=0.33 pb=0.90 rsh=6)
+
+*-----------------------------------------------------------------------------
+*  Sizing: PMOS 2.4x NMOS for roughly symmetric rise/fall.
+*-----------------------------------------------------------------------------
+.param WN=0.5u WP=1.2u LMIN=0.18u
+
+*-----------------------------------------------------------------------------
+*  INV -- 2 transistors
+*-----------------------------------------------------------------------------
+.subckt INV a y vdd vss
+MP y a vdd vdd PMOS_M W={WP} L={LMIN}
+MN y a vss vss NMOS_M W={WN} L={LMIN}
+.ends
+
+*-----------------------------------------------------------------------------
+*  NAND2 -- 4 transistors.  Series NMOS sized up to match.
+*-----------------------------------------------------------------------------
+.subckt NAND2 a b y vdd vss
+MP1 y a vdd vdd PMOS_M W={WP} L={LMIN}
+MP2 y b vdd vdd PMOS_M W={WP} L={LMIN}
+MN1 y a nx  vss NMOS_M W={2*WN} L={LMIN}
+MN2 nx b vss vss NMOS_M W={2*WN} L={LMIN}
+.ends
+
+*-----------------------------------------------------------------------------
+*  NOR2 -- 4 transistors.  Series PMOS sized up to match.
+*-----------------------------------------------------------------------------
+.subckt NOR2 a b y vdd vss
+MP1 px a vdd vdd PMOS_M W={2*WP} L={LMIN}
+MP2 y  b px  vdd PMOS_M W={2*WP} L={LMIN}
+MN1 y a vss vss NMOS_M W={WN} L={LMIN}
+MN2 y b vss vss NMOS_M W={WN} L={LMIN}
+.ends
+
+*-----------------------------------------------------------------------------
+*  AND2 / OR2 -- 6 transistors each
+*-----------------------------------------------------------------------------
+.subckt AND2 a b y vdd vss
+Xn a b ni vdd vss NAND2
+Xi ni y vdd vss INV
+.ends
+
+.subckt OR2 a b y vdd vss
+Xn a b ni vdd vss NOR2
+Xi ni y vdd vss INV
+.ends
+
+*-----------------------------------------------------------------------------
+*  XOR2 -- 16 transistors, four NAND2.  Chosen for robustness over a leaner
+*  transmission-gate version: both designs use the identical cell, so the
+*  transistor count cancels in the ratio that matters.
+*-----------------------------------------------------------------------------
+.subckt XOR2 a b y vdd vss
+Xn1 a b   n1 vdd vss NAND2
+Xn2 a n1  n2 vdd vss NAND2
+Xn3 b n1  n3 vdd vss NAND2
+Xn4 n2 n3 y  vdd vss NAND2
+.ends
+
+*-----------------------------------------------------------------------------
+*  FULL ADDER -- 50 transistors
+*      s    = a XOR b XOR cin
+*      cout = (a AND b) OR (cin AND (a XOR b))
+*
+*  THE SAME CELL IS USED BY BOTH DESIGNS.  That is what makes the energy
+*  ratio meaningful: any model error in the adder is common to both.
+*-----------------------------------------------------------------------------
+.subckt FA a b cin s cout vdd vss
+Xx1 a b     ab   vdd vss XOR2
+Xx2 ab cin  s    vdd vss XOR2
+Xa1 a b     g    vdd vss AND2
+Xa2 ab cin  p    vdd vss AND2
+Xo1 g p     cout vdd vss OR2
+.ends
+
+*-----------------------------------------------------------------------------
+*  MUX2 -- 2:1 multiplexer, y = sel ? b : a.  12 transistors.
+*-----------------------------------------------------------------------------
+.subckt MUX2 a b sel y vdd vss
+Xi  sel selb  vdd vss INV
+Xa1 a selb ta vdd vss AND2
+Xa2 b sel  tb vdd vss AND2
+Xo  ta tb  y  vdd vss OR2
+.ends

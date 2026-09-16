@@ -1,0 +1,25 @@
+# simulation build products
+sim/*.vvp
+sim/*.vcd
+sim/swtest
+spice/run/
+
+# Vivado
+build_cfg*/
+*.jou
+*.log
+.Xil/
+vivado*.str
+*.bit
+*.xsa
+
+# Vitis / build
+*.o
+*.elf
+
+# python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
