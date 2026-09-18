@@ -25,10 +25,11 @@ Here is the honest split.
 | Per-round trace verification | a..h and W[t] match at **all 64 rounds** |
 | Soak test | 12 messages incl. 55/56/63/64/65-byte padding boundaries |
 | Software SHA-256, padding, byte-swap | Compiled and verified natively against NIST |
-| Vitis driver and application | Written, complete |
+| Vitis driver and application | Written, complete, incl. the dual-stream pair API |
+| Dual-stream wire format | Block interleaving unit-tested natively (9 checks, `make swtest`) |
 | Build automation | Written |
 
-**Total: 69 RTL checks + 10 software checks, all passing.**
+**Total: 103 RTL checks + 19 software checks, all passing.**
 
 ### 1.2 Written but never executed
 
@@ -36,6 +37,7 @@ Here is the honest split.
 |---|---|---|
 | `vivado/build_system.tcl` | **Medium** — I have no Vivado to test against | Run Config A first. Expect to adjust one or two `apply_bd_automation` lines if your install names things differently. GUI fallback is in the guide, §3.4. |
 | `sw/main.c`, `sw/sha256_hw.c` | **Low** — logic verified, Xilinx API calls are standard | Compile against your BSP. Fix the base-address macro if `xparameters.h` names it differently. |
+| `sw/sha256_pair.c` | **Very low** — the interleaving order it produces is checked on the host by `make swtest`, including the de-interleave round trip | Nothing; it has no Xilinx dependency |
 
 ### 1.3 Genuinely not started
 

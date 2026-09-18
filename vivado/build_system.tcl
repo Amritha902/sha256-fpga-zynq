@@ -35,12 +35,23 @@
 set CORE_SELECT 0
 if {$argc > 0} { set CORE_SELECT [lindex $argv 0] }
 
-if {$CORE_SELECT == 0} {
-    set CFG_NAME "cfgA"
-    set CFG_DESC "Configuration A - iterative, 1 round/cycle, 66 cycles/block"
-} else {
-    set CFG_NAME "cfgB"
-    set CFG_DESC "Configuration B - 2x unrolled, 2 rounds/cycle, 34 cycles/block"
+# Cycles below are per 512-bit block. The interleaved configurations retire
+# TWO blocks per pass, so their figure is the EFFECTIVE per-block cost and
+# their core reports one digest_valid for both streams.
+switch -- $CORE_SELECT {
+    0 { set CFG_NAME "cfgA"
+        set CFG_DESC "Configuration A - U=1 C=1, iterative, 66 cycles/block"
+        set CYC_CORE 66  ; set CYC_SYS 85 ; set DUAL 0 }
+    1 { set CFG_NAME "cfgB"
+        set CFG_DESC "Configuration B - U=2 C=1, 2x unrolled, 34 cycles/block"
+        set CYC_CORE 34  ; set CYC_SYS 53 ; set DUAL 0 }
+    2 { set CFG_NAME "cfgC"
+        set CFG_DESC "Configuration C - U=1 C=2, interleaved, 33 cycles/block eff."
+        set CYC_CORE 33  ; set CYC_SYS 51 ; set DUAL 1 }
+    3 { set CFG_NAME "cfgD"
+        set CFG_DESC "Configuration D - U=2 C=2, both levers, 17 cycles/block eff."
+        set CYC_CORE 17  ; set CYC_SYS 35 ; set DUAL 1 }
+    default { error "CORE_SELECT must be 0 (A), 1 (B), 2 (C) or 3 (D)" }
 }
 
 set PART        xc7z020clg484-1
@@ -63,13 +74,20 @@ puts " Output dir  : $PROJ_DIR"
 puts "============================================================"
 puts ""
 
+# All four cores and BOTH stream wrappers are read in every build. The
+# unused ones are pruned by the generate block in sha256_top, so the file
+# list is identical across configurations -- which is what keeps the four
+# builds a controlled comparison rather than four different projects.
 set RTL_FILES [list \
-    $RTL_DIR/sha256_functions.v      \
-    $RTL_DIR/sha256_core_iter.v      \
-    $RTL_DIR/sha256_core_unroll2.v   \
-    $RTL_DIR/sha256_axi_lite_regs.v  \
-    $RTL_DIR/sha256_axis_wrapper.v   \
-    $RTL_DIR/sha256_top.v            \
+    $RTL_DIR/sha256_functions.v         \
+    $RTL_DIR/sha256_core_iter.v         \
+    $RTL_DIR/sha256_core_unroll2.v      \
+    $RTL_DIR/sha256_core_cslow2.v       \
+    $RTL_DIR/sha256_core_u2c2.v         \
+    $RTL_DIR/sha256_axi_lite_regs.v     \
+    $RTL_DIR/sha256_axis_wrapper.v      \
+    $RTL_DIR/sha256_axis_wrapper_dual.v \
+    $RTL_DIR/sha256_top.v               \
 ]
 
 #=============================================================================
@@ -263,18 +281,28 @@ puts $sfh "WHOLE SYSTEM (incl. DMA and interconnect):"
 puts $sfh "  LUT   : $tot_lut / 53200"
 puts $sfh "  FF    : $tot_ff / 106400"
 puts $sfh ""
-if {$CORE_SELECT == 0} {
-    puts $sfh "Cycles per 512-bit block : 66"
-    puts $sfh "Throughput at Fmax       : [format %.1f [expr {512.0 * $fmax / 66.0}]] Mbit/s"
-} else {
-    puts $sfh "Cycles per 512-bit block : 34"
-    puts $sfh "Throughput at Fmax       : [format %.1f [expr {512.0 * $fmax / 34.0}]] Mbit/s"
+puts $sfh "Cycles per 512-bit block : $CYC_CORE (core), $CYC_SYS (full system)"
+if {$DUAL} {
+    puts $sfh "  Interleaved core: TWO blocks retire per pass, so these are"
+    puts $sfh "  EFFECTIVE per-block figures. BLOCK_CNT is per stream and both"
+    puts $sfh "  streams must have the same block count."
+}
+puts $sfh "Throughput at Fmax       : [format %.1f [expr {512.0 * $fmax / double($CYC_CORE)}]] Mbit/s (core cycles)"
+puts $sfh "                           [format %.1f [expr {512.0 * $fmax / double($CYC_SYS)}]] Mbit/s (system cycles)"
+puts $sfh ""
+puts $sfh "DUAL-STREAM CAPABILITY   : $DUAL"
+if {$DUAL} {
+    puts $sfh "  CAPS bit at 0x58 reads 1; stream 1's digest is at 0x38..0x54."
+    puts $sfh "  The software discovers this at run time -- one Vitis binary"
+    puts $sfh "  drives all four configurations."
 }
 puts $sfh ""
-puts $sfh "BREAK-EVEN REMINDER"
-puts $sfh "  Config B is a net throughput win only if"
-puts $sfh "      Fmax(B) / Fmax(A)  >  34/66  =  0.515"
-puts $sfh "  Record both numbers and compute the ratio."
+puts $sfh "BREAK-EVEN REMINDER -- record Fmax for every configuration"
+puts $sfh "  A is the baseline. Each other config is a net win only if"
+puts $sfh "  its Fmax ratio to A exceeds its cycle ratio:"
+puts $sfh "      B : 53/85 = 0.624     C : 51/85 = 0.600     D : 35/85 = 0.412"
+puts $sfh "  C and D keep A's and B's combinational depth respectively, so"
+puts $sfh "  their ratios should sit near 1.000 and near Fmax(B)/Fmax(A)."
 close $sfh
 
 puts ""

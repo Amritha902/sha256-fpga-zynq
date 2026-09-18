@@ -176,6 +176,110 @@ static int test_vectors(void)
 /*---------------------------------------------------------------------------
  *  Test 3 — hardware vs software benchmark
  *-------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------
+ *  TEST 4 : dual-stream -- Configs C and D only
+ *
+ *  Skipped, not failed, on a single-stream bitstream. The capability is read
+ *  from the CAPS register rather than assumed, so one binary drives all four
+ *  configurations.
+ *-------------------------------------------------------------------------*/
+static int test_dual_stream(void)
+{
+    static const char *M0 = "abc";
+    static const char *M1 = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
+    static const char *D0 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+    static const char *D1 = "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1";
+
+    uint8_t  dig0[32], dig1[32], swd[32];
+    char     hex0[65], hex1[65], swhex[65];
+    uint32_t pair_cycles;
+    int      fails = 0;
+    int      rc;
+
+    banner("TEST 4 : dual-stream interleaving");
+
+    if (!sha256_hw_is_dual()) {
+        xil_printf("  CAPS.dual_stream = 0 -- single-stream core "
+                   "(Config A or B).\r\n");
+        xil_printf("  SKIPPED. This test needs a Config C or D bitstream.\r\n");
+        return 0;
+    }
+    xil_printf("  CAPS.dual_stream = 1 -- interleaved core "
+               "(Config C or D).\r\n\r\n");
+
+    /* The two streams advance in lockstep, so the driver must refuse a pair
+     * whose block counts differ. Prove it does before trusting a result. */
+    rc = sha256_hw_hash_pair((const uint8_t*)"abc", 3,
+                             (const uint8_t*)M1, 56, dig0, dig1);
+    xil_printf("  mismatched block counts rejected : %s\r\n",
+               rc == SHA256_ERR_LEN_MISMATCH ? "PASS" : "FAIL");
+    if (rc != SHA256_ERR_LEN_MISMATCH) { fails++; }
+
+    /* Two DIFFERENT messages of equal block count, hashed in one pass. */
+    rc = sha256_hw_hash_pair((const uint8_t*)M0, 3,
+                             (const uint8_t*)"xyz", 3, dig0, dig1);
+    if (rc != SHA256_OK) {
+        xil_printf("  [FAIL] hash_pair returned %d\r\n", rc);
+        return fails + 1;
+    }
+    pair_cycles = sha256_hw_last_cycles();
+
+    sha256_hex(dig0, hex0);
+    sha256_hex(dig1, hex1);
+
+    xil_printf("  stream 0 = \"abc\"\r\n");
+    xil_printf("    hw  : %s\r\n", hex0);
+    if (strcmp(hex0, D0) != 0) {
+        xil_printf("    ref : %s   <-- MISMATCH\r\n", D0);
+        fails++;
+    } else {
+        xil_printf("    [PASS] matches NIST\r\n");
+    }
+
+    sha256_sw((const uint8_t*)"xyz", 3, swd);
+    sha256_hex(swd, swhex);
+    xil_printf("  stream 1 = \"xyz\"\r\n");
+    xil_printf("    hw  : %s\r\n", hex1);
+    if (strcmp(hex1, swhex) != 0) {
+        xil_printf("    sw  : %s   <-- HW/SW MISMATCH\r\n", swhex);
+        fails++;
+    } else {
+        xil_printf("    [PASS] matches software reference\r\n");
+    }
+
+    /* Swap the slots: a result that depends on which stream a message went
+     * into would mean the two contexts are not actually independent. */
+    rc = sha256_hw_hash_pair((const uint8_t*)"xyz", 3,
+                             (const uint8_t*)M0, 3, dig0, dig1);
+    if (rc == SHA256_OK) {
+        sha256_hex(dig1, hex1);
+        xil_printf("  slots swapped, \"abc\" now on stream 1 : %s\r\n",
+                   strcmp(hex1, D0) == 0 ? "PASS" : "FAIL");
+        if (strcmp(hex1, D0) != 0) { fails++; }
+    }
+
+    /* Multi-block on both streams at once. */
+    rc = sha256_hw_hash_pair((const uint8_t*)M1, 56,
+                             (const uint8_t*)M1, 56, dig0, dig1);
+    if (rc == SHA256_OK) {
+        sha256_hex(dig0, hex0);
+        sha256_hex(dig1, hex1);
+        xil_printf("  two-block message on both streams   : %s\r\n",
+                   (strcmp(hex0, D1) == 0 && strcmp(hex1, D1) == 0)
+                   ? "PASS" : "FAIL");
+        if (strcmp(hex0, D1) != 0 || strcmp(hex1, D1) != 0) { fails++; }
+    }
+
+    xil_printf("\r\n  cycles for the PAIR  : %u\r\n", (unsigned)pair_cycles);
+    xil_printf("  per message          : %u  (two digests retired)\r\n",
+               (unsigned)(pair_cycles / 2u));
+    xil_printf("\r\n  NOTE: interleaving helps only when there are two\r\n");
+    xil_printf("  INDEPENDENT messages. Single-message latency is\r\n");
+    xil_printf("  unchanged, and a lone message wastes one slot.\r\n");
+
+    return fails;
+}
+
 static void benchmark(void)
 {
     uint8_t  dig[32];
@@ -292,6 +396,7 @@ int main(void)
 
     fails += test_registers();
     fails += test_vectors();
+    fails += test_dual_stream();
     benchmark();
 
     banner("SUMMARY");

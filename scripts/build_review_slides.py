@@ -298,10 +298,10 @@ s.notes_slide.notes_text_frame.text = (
 # ---------------------------------------------------------------- SLIDE 08 --
 s = blank(prs)
 header(s, "Verification Status", "08")
-banner(s, "69 RTL checks and 10 software checks, all passing.")
+banner(s, "103 RTL checks and 21 software checks, all passing.")
 
-stats = [("69", "RTL checks"), ("10", "software checks"),
-         ("64", "rounds traced"), ("0", "failures")]
+stats = [("103", "RTL checks"), ("21", "software checks"),
+         ("4", "configs, one round module"), ("0", "failures")]
 for n, (big, lab) in enumerate(stats):
     x = 0.90 + n * 2.95
     rect(s, x, 2.55, 2.65, 1.20, CARD_N)
@@ -321,14 +321,17 @@ bullets(s, CONTENT_L, 4.47, 5.30, 2.00, [
     [("NIST vectors ", {"bold": True, "color": DARK}),
      ("including multi-block chaining", {})],
 ], size=13.5)
-bullets(s, 6.90, 4.47, 5.50, 2.00, [
+bullets(s, 6.90, 4.47, 5.50, 2.40, [
     [("Soak: 12 messages ", {"bold": True, "color": DARK}),
      ("at 55, 56, 63, 64 and 65 bytes — the padding boundaries that break "
       "most designs", {})],
     [("Four-way agreement: ", {"bold": True, "color": DARK}),
      ("A, B and both streams of C and D must produce bit-identical digests", {})],
+    [("Dual-stream over AXI: ", {"bold": True, "color": DARK}),
+     ("17 system checks each for C and D; the interleaving wire format is "
+      "unit-tested on the host", {})],
     [("Cycle counts ", {"bold": True, "color": DARK}),
-     ("66, 34, 33 and 17 confirmed in simulation", {})],
+     ("core 66/34/33/17 and system 85/53/51/35, measured", {})],
 ], size=13.5)
 s.notes_slide.notes_text_frame.text = (
     "The four-way agreement check is the strongest one: it needs no external "
@@ -376,6 +379,6 @@ s.notes_slide.notes_text_frame.text = (
     "differ in area. State the caveat out loud: C and D need independent "
     "messages, and single-message latency is unchanged.")
 
-out = "/Users/amritha/Downloads/files 2/sha_project/Review_SHA256_2x2.pptx"
+out = "/Users/amritha/sha256-fpga/Review_SHA256_2x2.pptx"
 prs.save(out)
 print("wrote", out, "-", len(prs.slides.__iter__.__self__._sldIdLst), "slides")

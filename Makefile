@@ -108,7 +108,7 @@ swtest:
 	@echo ""
 	@echo "--- SOFTWARE REFERENCE (native) ---"
 	@mkdir -p sim
-	@gcc -O2 -Wall -Wextra -Isw -o sim/swtest sw/test_sw.c sw/sha256_sw.c
+	@gcc -O2 -Wall -Wextra -Isw -o sim/swtest sw/test_sw.c sw/sha256_sw.c sw/sha256_pair.c
 	@./sim/swtest
 
 model:
