@@ -335,7 +335,7 @@ Columns: device, architecture, LUTs/slices, Fmax, throughput, throughput-per-are
 | [23] Stevens et al., CRYPTO 2017 | ⚠️ | Widely known; **not independently re-verified in this revision** |
 | [24]–[29] Standards and vendor docs | ✅ | Document numbers as published |
 
-Three entries carry ⚠️. Resolve them before submission; do not let a viva find them first.
+Four entries carry ⚠️. Resolve them before submission; do not let a viva find them first.
 
 ---
 
