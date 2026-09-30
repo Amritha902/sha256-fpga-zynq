@@ -216,13 +216,18 @@ possible case in this algorithm. SHA-256's operands are uniformly distributed by
 construction — that is the security property — so value-dependent optimisation
 has nothing to bite on. Full write-up in `ADDER_BYPASS_FINDING.md`.
 
-**A patent on the architecture — not viable as it stands.** Unrolling,
-interleaving and pipelining are all published; the independence of the two axes
-follows from C-slow retiming theory (Leiserson & Saxe, 1991). India's §3(k)
-rejects device claims over a published algorithm lacking inventive hardware
-orientation. The one route that stays open is a Vivado result that contradicts
-Suhaili & Julai — prior art teaching away is a genuine inventive-step argument,
-and it needs §1 done first.
+**A patent on the architecture — all six candidate claims killed on prior art.**
+Full adversarial assessment in `PATENT_GRILLING.md`. The decisive documents: a
+**Helion Technology commercial FPGA IP datasheet from 2010** that switches
+message context "on a block by block basis ... for multiple interleaved message
+streams", and **IBM US20250070957A1** (filed 2023) which describes "lockstep of
+two messages, to fully exploit a two-cycle pipeline" as *known background* it is
+claiming around. Unroll-plus-pipeline is McEvoy 2006 and Gamgam 2023; operand
+rescheduling is Chaves 2006; axis independence follows from Leiserson–Saxe
+(1991); the methodology is excluded under §3(k). The one route that stays open
+is a Vivado result that contradicts Suhaili & Julai — teaching away is a genuine
+inventive-step argument — but the odds are low, because our own ngspice study
+already supplies the explanation. Needs §1 done first.
 
 **What the project actually claims** is a controlled re-test of a specific
 recent contradictory result, plus the measured finding that unrolling's payoff
