@@ -110,19 +110,19 @@ static int test_registers(void)
 
     v = sha256_hw_read_reg(SHA256_REG_VERSION);
     xil_printf("  VERSION       = 0x%08x  expected 0x%08x  [%s]\r\n",
-               v, SHA256_VERSION_ID,
+               (unsigned)v, (unsigned)SHA256_VERSION_ID,
                (v == SHA256_VERSION_ID) ? "PASS" : "FAIL");
     if (v != SHA256_VERSION_ID) fails++;
 
     sha256_hw_write_reg(SHA256_REG_BLOCK_CNT, 0x1234u);
     rb = sha256_hw_read_reg(SHA256_REG_BLOCK_CNT);
     xil_printf("  BLOCK_CNT r/w = 0x%08x  expected 0x00001234  [%s]\r\n",
-               rb, (rb == 0x1234u) ? "PASS" : "FAIL");
+               (unsigned)rb, (rb == 0x1234u) ? "PASS" : "FAIL");
     if (rb != 0x1234u) fails++;
 
     v = sha256_hw_read_reg(SHA256_REG_STATUS);
     xil_printf("  STATUS        = 0x%08x  (busy=%d ready=%d)\r\n",
-               v, (int)(v & SHA256_STAT_BUSY),
+               (unsigned)v, (int)(v & SHA256_STAT_BUSY),
                (int)((v & SHA256_STAT_CORE_READY) ? 1 : 0));
 
     return fails;
