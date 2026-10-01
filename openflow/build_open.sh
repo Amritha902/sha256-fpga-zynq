@@ -11,6 +11,10 @@
 #  scripts/compare_configs.py reads.
 #
 #      openflow/build_open.sh [seed ...]          (default seeds: 1 2 3 4 5)
+#      CONFIGS="Bs" openflow/build_open.sh         (rebuild selected configs only)
+#
+#  Configs: A, B, C, D (the 2x2) and Bs = B', the operand-scheduled unrolled
+#  core (rtl/sha256_core_unroll2_sched.v) that tests the ngspice finding.
 #
 #  Environment (defaults match the cloud setup in openflow/README.md):
 #      YOSYS           yosys >= 0.40 (0.33's abc9 aborts on these cores)
@@ -37,18 +41,21 @@ OUT=reports_open
 mkdir -p "$OUT"
 
 RTL="rtl/sha256_functions.v rtl/sha256_core_iter.v rtl/sha256_core_unroll2.v \
-     rtl/sha256_core_cslow2.v rtl/sha256_core_u2c2.v openflow/ooc_harness.v"
-TOPS=(sha256_core_iter sha256_core_unroll2 sha256_core_cslow2 sha256_core_u2c2)
-NAMES=(A B C D)
+     rtl/sha256_core_cslow2.v rtl/sha256_core_u2c2.v rtl/sha256_core_unroll2_sched.v \
+     openflow/ooc_harness.v"
+declare -A TOP=([A]=sha256_core_iter [B]=sha256_core_unroll2 [C]=sha256_core_cslow2
+                [D]=sha256_core_u2c2 [Bs]=sha256_core_unroll2_sched)
+declare -A HCFG=([A]=0 [B]=1 [C]=2 [D]=3 [Bs]=4)
+CONFIGS=(${CONFIGS:-A B C D Bs})
 
 python3 openflow/make_xdc.py "$PINS" > "$OUT/pins.xdc"
 
-for CFG in 0 1 2 3; do
-    N=${NAMES[$CFG]}
-    echo "=== Config $N: area synthesis of the bare core (${TOPS[$CFG]})"
+for N in "${CONFIGS[@]}"; do
+    CFG=${HCFG[$N]}
+    echo "=== Config $N: area synthesis of the bare core (${TOP[$N]})"
     $YOSYS -q -l "$OUT/area_$N.log" -p "
         read_verilog -sv $RTL
-        synth_xilinx -flatten -abc9 -arch xc7 -top ${TOPS[$CFG]}
+        synth_xilinx -flatten -abc9 -arch xc7 -top ${TOP[$N]}
         tee -q -o $OUT/area_$N.txt stat"
 
     echo "=== Config $N: timing synthesis inside the harness"
@@ -69,3 +76,4 @@ done
 
 python3 openflow/collect_results.py "$OUT" "${SEEDS[@]}"
 python3 scripts/compare_configs.py "$OUT/results.csv"
+python3 openflow/compare_sched.py "$OUT/results.csv"

@@ -1,0 +1,5 @@
+config,description,part,period_ns,wns_ns,fmax_mhz,cycles_per_block,streams,lut,ff,carry,bram,dsp,throughput_mbps,throughput_per_lut
+A,"CONFIG A - U=1, C=1 : iterative baseline",xc7z020clg484-1 (open flow),4.0,-10.654,68.24,66.0,1,1921,1035,98,0,0,529.4,0.2756
+B,"CONFIG B - U=2, C=1 : 2x unrolled",xc7z020clg484-1 (open flow),4.0,-17.777,45.92,34.0,1,2298,1035,130,0,0,691.5,0.3009
+C,"CONFIG C - U=1, C=2 : 2-message C-slow interleaved",xc7z020clg484-1 (open flow),4.0,-10.663,68.20,33.0,2,3611,2059,194,0,0,1058.1,0.2930
+D,"CONFIG D - U=2, C=2 : unrolled AND interleaved",xc7z020clg484-1 (open flow),4.0,-20.888,40.18,17.0,2,4486,2059,258,0,0,1210.1,0.2698
