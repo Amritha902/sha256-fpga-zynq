@@ -5,6 +5,7 @@
 #      sudo apt-get install iverilog gtkwave build-essential
 #
 #      make          core RTL verification      (21 checks)
+#      make sched    config B' (operand-scheduled B) — the core suite on B'
 #      make cslow    config C + D verification  (27 checks)
 #      make sys      system AXI verification A  ( 9 checks)
 #      make sysB     system AXI verification B  ( 9 checks)
@@ -23,7 +24,8 @@ CORE_RTL := rtl/sha256_functions.v \
             rtl/sha256_core_iter.v \
             rtl/sha256_core_unroll2.v \
             rtl/sha256_core_cslow2.v \
-            rtl/sha256_core_u2c2.v
+            rtl/sha256_core_u2c2.v \
+            rtl/sha256_core_unroll2_sched.v
 
 SYS_RTL  := $(CORE_RTL) \
             rtl/sha256_axi_lite_regs.v \
@@ -33,9 +35,9 @@ SYS_RTL  := $(CORE_RTL) \
 
 IV := iverilog -g2012 -Wall
 
-.PHONY: all sim cslow sys sysB sysC sysD soak swtest model wave lint clean
+.PHONY: all sim sched cslow sys sysB sysC sysD soak swtest model wave lint clean
 
-all: model sim cslow sys sysB sysC sysD soak swtest
+all: model sim sched cslow sys sysB sysC sysD soak swtest
 	@echo ""
 	@echo "============================================================"
 	@echo " ALL VERIFICATION STAGES COMPLETE"
@@ -49,6 +51,26 @@ sim: sim/tb_sha256.vvp
 sim/tb_sha256.vvp: $(CORE_RTL) tb/tb_sha256.v
 	@mkdir -p sim
 	@$(IV) -o $@ $(CORE_RTL) tb/tb_sha256.v
+
+sched: sim/tb_sha256_sched.vvp sim/tb_soak_sched.vvp
+	@echo ""
+	@echo "--- CONFIG B' VERIFICATION : OPERAND-SCHEDULED UNROLLED CORE ---"
+	@vvp sim/tb_sha256_sched.vvp
+	@echo ""
+	@echo "--- CONFIG B' TRACE + SOAK (B' in place of B) ---"
+	@vvp sim/tb_soak_sched.vvp
+
+sim/tb_soak_sched.vvp: $(CORE_RTL) tb/tb_sha256_soak.v
+	@mkdir -p sim
+	@sed 's/sha256_core_unroll2 u_B/sha256_core_unroll2_sched u_B/' tb/tb_sha256_soak.v > sim/tb_soak_sched.v
+	@$(IV) -o $@ $(CORE_RTL) sim/tb_soak_sched.v
+
+# The full core suite with Config B swapped for B'. Every B check, including
+# A == B digest agreement and the 34-cycle count, then runs against B'.
+sim/tb_sha256_sched.vvp: $(CORE_RTL) tb/tb_sha256.v
+	@mkdir -p sim
+	@sed 's/sha256_core_unroll2 u_unroll/sha256_core_unroll2_sched u_unroll/' tb/tb_sha256.v > sim/tb_sha256_sched.v
+	@$(IV) -o $@ $(CORE_RTL) sim/tb_sha256_sched.v
 
 cslow: sim/tb_cslow.vvp
 	@echo ""

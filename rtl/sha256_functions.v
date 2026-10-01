@@ -193,3 +193,36 @@ module sha256_round_comb (
     assign g_out = f_in;
     assign h_out = g_in;
 endmodule
+
+//----------------------------------------------------------------------------
+// sha256_round_comb_hkw — one round with h + K + W already summed.
+// Used only by Config B' (sha256_core_unroll2_sched.v) for the second round
+// of the pair. Logically identical to sha256_round_comb with
+// hkw = h_in + kt + wt; only the order of the T1 additions differs.
+//----------------------------------------------------------------------------
+module sha256_round_comb_hkw (
+    input  wire [31:0] a_in, b_in, c_in, d_in,
+    input  wire [31:0] e_in, f_in, g_in,
+    input  wire [31:0] hkw,
+    output wire [31:0] a_out, b_out, c_out, d_out,
+    output wire [31:0] e_out, f_out, g_out, h_out
+);
+    wire [31:0] s1, s0, ch_o, maj_o;
+
+    sha256_big_sigma1 u_s1  (.x(e_in), .out(s1));
+    sha256_big_sigma0 u_s0  (.x(a_in), .out(s0));
+    sha256_ch         u_ch  (.x(e_in), .y(f_in), .z(g_in), .out(ch_o));
+    sha256_maj        u_maj (.x(a_in), .y(b_in), .z(c_in), .out(maj_o));
+
+    wire [31:0] t1 = hkw + s1 + ch_o;               // two late adds, not five
+    wire [31:0] t2 = s0 + maj_o;
+
+    assign a_out = t1 + t2;
+    assign b_out = a_in;
+    assign c_out = b_in;
+    assign d_out = c_in;
+    assign e_out = d_in + t1;
+    assign f_out = e_in;
+    assign g_out = f_in;
+    assign h_out = g_in;
+endmodule
