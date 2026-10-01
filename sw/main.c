@@ -58,7 +58,7 @@ static const vector_t VECTORS[] = {
     { "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmn"
       "hijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu", 112,
       "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1",
-      "112-byte message        (3 blocks)" },
+      "112-byte message        (2 blocks)" },
 };
 #define NUM_VECTORS (sizeof(VECTORS) / sizeof(VECTORS[0]))
 

@@ -29,3 +29,8 @@ __pycache__/
 reports_open/*.log
 reports_open/*.json
 reports_open/pins.xdc
+
+# virtual-board and gate-level run products
+reports_cosim/obj_*/
+reports_gatesim/*.vvp
+reports_gatesim/net_*.v

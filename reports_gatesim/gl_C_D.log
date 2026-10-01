@@ -1,0 +1,60 @@
+VCD info: dumpfile sim/tb_sha256_cslow.vcd opened for output.
+
+==========================================================================
+ SHA-256 INTERLEAVED CORE VERIFICATION   (Config C and Config D)
+==========================================================================
+
+LEVEL 1 : two different messages hashed simultaneously
+  [PASS]  stream 0 = SHA-256("abc")           
+  [PASS]  stream 1 = SHA-256("")              
+
+LEVEL 2 : streams swapped — the two slots must be symmetric
+  [PASS]  stream 0 = SHA-256("")              
+  [PASS]  stream 1 = SHA-256("abc")           
+
+LEVEL 3 : multi-block chaining on BOTH streams at once
+  [PASS]  stream 0 = 56-byte two-block message 
+  [PASS]  stream 1 = 56-byte two-block message 
+
+LEVEL 4 : asymmetric traffic — stream 0 continues a message
+          while stream 1 starts a fresh one
+  [PASS]  stream 0 chained across the pair     
+  [PASS]  stream 1 restarted independently     
+
+LEVEL 5 : cross-validation against Configuration A
+  [PASS]  Config C stream 0 == Config A        
+  [PASS]  Config C stream 1 == Config A        
+
+LEVEL 6 : cycle count per block pair
+          66 cycles retire TWO blocks -> 33 effective per block
+          Config A : 66 per block   Config B : 34 per block
+  [PASS]  cycles for a two-block pair           = 66
+  [PASS]  effective cycles per block            = 33
+
+LEVEL 7 : Configuration D  (U=2, C=2)  — 4 round instances
+  [PASS]  D stream 0 = SHA-256("abc")         
+  [PASS]  D stream 1 = SHA-256("")            
+  [PASS]  D streams swapped, slot 0            
+  [PASS]  D streams swapped, slot 1            
+  [PASS]  D stream 0 two-block chained         
+  [PASS]  D stream 1 two-block chained         
+  [PASS]  D asymmetric: s0 chained             
+  [PASS]  D asymmetric: s1 restarted           
+
+LEVEL 8 : four-way agreement  A == C == D
+  [PASS]  Config C == Config A                 
+  [PASS]  Config D == Config A                 
+  [PASS]  Config D == Config C                 
+
+LEVEL 9 : Configuration D cycle count
+          34 cycles retire TWO blocks -> 17 effective per block
+          A: 66   B: 34   C: 33   D: 17   (effective, per block)
+  [PASS]  D cycles for a two-block pair         = 34
+  [PASS]  D effective cycles per block          = 17
+
+==========================================================================
+ CHECKS RUN : 25      FAILURES : 0
+ RESULT     : ALL INTERLEAVED-CORE CHECKS PASSED
+==========================================================================
+
+tb/tb_sha256_cslow.v:319: $finish called at 11905000 (1ps)

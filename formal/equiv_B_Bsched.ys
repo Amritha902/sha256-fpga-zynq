@@ -1,0 +1,26 @@
+# Formal equivalence: Config B (sha256_core_unroll2) vs Config B'
+# (sha256_core_unroll2_sched). Same registers, different T1 adder order in the
+# second round. equiv_make pairs the two designs' registers by name; equiv_simple
+# proves each matched signal with SAT over its input cone; equiv_induct closes
+# the rest by induction over the state. equiv_status -assert fails the run if
+# any pair is unproven.
+read_verilog -sv rtl/sha256_functions.v rtl/sha256_core_unroll2.v
+prep -flatten -top sha256_core_unroll2
+memory_map; opt_clean
+rename sha256_core_unroll2 gold
+design -stash gold
+
+read_verilog -sv rtl/sha256_functions.v rtl/sha256_core_unroll2_sched.v
+prep -flatten -top sha256_core_unroll2_sched
+memory_map; opt_clean
+rename sha256_core_unroll2_sched gate
+design -stash gate
+
+design -copy-from gold -as gold gold
+design -copy-from gate -as gate gate
+async2sync
+equiv_make gold gate equiv
+hierarchy -top equiv
+equiv_simple -undef
+equiv_induct -undef
+equiv_status -assert

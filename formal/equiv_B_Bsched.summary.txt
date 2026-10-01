@@ -1,0 +1,10 @@
+Found 4599 unproven $equiv cells (142 groups) in equiv:
+ Grouping SAT models for \a:
+  Trying to prove $equiv for \a [0]:ezsat
+ezsat
+--
+  Of those cells 4599 are proven and 0 are unproven.
+  Equivalence successfully proven!
+
+Warnings: 2 unique messages, 2 total
+End of script. Logfile hash: fb9dadf1cc, time: 71.52s, user: 71.52s, system: 0.00s

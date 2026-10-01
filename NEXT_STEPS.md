@@ -23,7 +23,9 @@ level with `origin/master`.
 | Review slides for the 2×2 | done |
 | **Synthesis, Fmax, area — open-source flow on XC7Z020** | **done, see `OPEN_FLOW_RESULTS.md`**: B/A = 0.673 (clears both thresholds), C/A = 0.999 |
 | Synthesis, Fmax, area — Vivado | not started — see §1; still the reference result |
-| Board bring-up | not started |
+| Board bring-up, virtual: the unmodified `main.c` against the RTL over AXI | **done, all four configs pass** (`make cosim`); it found and fixed a C/D driver hang |
+| Gate-level simulation, formal B′ ≡ B | **done** (`make gatesim`, `make formal`) |
+| Board bring-up on the real ZedBoard | not started |
 
 Reproduce the whole verification suite in one command:
 

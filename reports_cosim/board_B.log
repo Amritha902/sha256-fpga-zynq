@@ -1,0 +1,76 @@
+
+==========================================================
+ SHA-256 HARDWARE ACCELERATOR  -  ZedBoard XC7Z020
+==========================================================
+ Amritha S  -  23BEC1368
+ PL clock : 100000000 Hz
+ Accelerator detected and initialised.
+
+==========================================================
+ TEST 1 : register map
+==========================================================
+  VERSION       = 0x53480001  expected 0x53480001  [PASS]
+  BLOCK_CNT r/w = 0x00001234  expected 0x00001234  [PASS]
+  STATUS        = 0x00000004  (busy=0 ready=1)
+
+==========================================================
+ TEST 2 : NIST FIPS 180-4 conformance
+==========================================================
+  [PASS] empty message           (1 block )
+         hw : e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+         cycles = 52
+  [PASS] "abc"                    (1 block )
+         hw : ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+         cycles = 52
+  [PASS] 56-byte message         (2 blocks)
+         hw : 248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1
+         cycles = 104
+  [PASS] 112-byte message        (2 blocks)
+         hw : cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1
+         cycles = 104
+
+==========================================================
+ TEST 4 : dual-stream interleaving
+==========================================================
+  CAPS.dual_stream = 0 -- single-stream core (Config A or B).
+  SKIPPED. This test needs a Config C or D bitstream.
+
+==========================================================
+ TEST 3 : hardware vs software throughput
+==========================================================
+  message size        : 4096 bytes x 64 iterations
+  blocks per message  : 65
+  accelerator cycles  : 3380  (last message)
+
+  hardware  : 0.002294 s   914.16 Mbit/s
+  software  : 0.001031 s   2033.84 Mbit/s
+  speedup   : 0.45x
+
+  NOTE: a modest speedup is EXPECTED and correct.  SHA-256 is
+  32-bit add, XOR and rotate -- exactly what an ALU does in
+  one cycle each.  Unlike a block cipher there is no arithmetic
+  the CPU must emulate.  The value here is offload and
+  deterministic latency, not raw throughput multiplication.
+
+==========================================================
+ SUMMARY
+==========================================================
+  ALL CONFORMANCE CHECKS PASSED
+
+==========================================================
+ INTERACTIVE : type a message, get its SHA-256
+==========================================================
+  Enter an empty line to quit.
+
+  msg> abc
+  hw  : ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+  sw  : ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad   [cross-check]
+
+  msg> 
+  leaving interactive mode
+
+==========================================================
+ DONE
+==========================================================
+
+[virtual board] board_main returned 0 after 219273 PL cycles

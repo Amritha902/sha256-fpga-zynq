@@ -63,6 +63,9 @@ int sha256_hw_init(void);
  *   digest   : 32-byte output
  * Pads, byte-swaps, flushes the cache, runs the DMA, polls for completion
  * and reads the digest back over AXI4-Lite.
+ * Works on every configuration: on a dual-stream build (C or D) the message
+ * is hashed as a pair with itself, wasting one slot, and is limited to
+ * 32 KB padded.
  * Returns SHA256_OK or a negative error code. */
 int sha256_hw_hash(const uint8_t *msg, size_t msg_len, uint8_t digest[32]);
 

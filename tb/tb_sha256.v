@@ -141,20 +141,23 @@ module tb_sha256;
         input [511:0] blk;
         integer n;
         begin
+            // Drive and sample 1 ns after each edge, never AT it: a
+            // blocking write at the edge races the DUT's flops, and a
+            // gate-level netlist resolves that race differently from RTL.
             wait (a_ready);
-            @(posedge clk);
+            @(posedge clk); #1;
             a_blk  = blk;
             a_init = first;
             a_bv   = 1'b1;
-            @(posedge clk);
+            @(posedge clk); #1;              // the load edge
             a_bv   = 1'b0;
             n = 1;
-            while (!a_dv) begin
-                @(posedge clk);
+            while (!a_dv) begin            // digest_valid set at edge n
+                @(posedge clk); #1;
                 n = n + 1;
             end
             a_cycles = n;
-            @(posedge clk);
+            @(posedge clk); #1;
         end
     endtask
 
@@ -164,20 +167,23 @@ module tb_sha256;
         input [511:0] blk;
         integer n;
         begin
+            // Drive and sample 1 ns after each edge, never AT it: a
+            // blocking write at the edge races the DUT's flops, and a
+            // gate-level netlist resolves that race differently from RTL.
             wait (b_ready);
-            @(posedge clk);
+            @(posedge clk); #1;
             b_blk  = blk;
             b_init = first;
             b_bv   = 1'b1;
-            @(posedge clk);
+            @(posedge clk); #1;              // the load edge
             b_bv   = 1'b0;
             n = 1;
-            while (!b_dv) begin
-                @(posedge clk);
+            while (!b_dv) begin            // digest_valid set at edge n
+                @(posedge clk); #1;
                 n = n + 1;
             end
             b_cycles = n;
-            @(posedge clk);
+            @(posedge clk); #1;
         end
     endtask
 

@@ -61,6 +61,7 @@
  *-------------------------------------------------------------------------*/
 static XAxiDma  g_dma;
 static uint32_t g_last_cycles = 0;
+static int      g_dual = 0;          /* bitstream is Config C or D; set at init */
 
 /* DMA source buffer.  Aligned to a cache line so the flush is exact.
  * Placed in .bss, which lives in DDR by default in the standard linker
@@ -127,6 +128,7 @@ int sha256_hw_init(void)
         return SHA256_ERR_VERSION;
     }
 
+    g_dual = sha256_hw_is_dual();
     return SHA256_OK;
 }
 
@@ -187,6 +189,17 @@ int sha256_hw_hash(const uint8_t *msg, size_t msg_len, uint8_t digest[32])
     uint32_t nblocks;
     uint32_t guard;
     int      rc;
+
+    /* A dual-stream core (Config C or D) only accepts block PAIRS: streaming
+     * one message into it leaves the wrapper waiting for stream 1 forever.
+     * A lone message rides in slot 0 with a copy in slot 1, so one slot is
+     * wasted -- exactly the single-message cost the design documents.
+     * Found by the virtual-board run (cosim/), which drives this function
+     * on every configuration. */
+    if (g_dual) {
+        uint8_t spare[32];
+        return sha256_hw_hash_pair(msg, msg_len, msg, msg_len, digest, spare);
+    }
 
     /* ---- 1. pad ---------------------------------------------------------*/
     padded_len = sha256_pad(msg, msg_len, g_padbuf, SHA256_MAX_PADDED);

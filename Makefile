@@ -17,6 +17,10 @@
 #      make all      run everything
 #      make wave     open the core waveform
 #      make lint     elaborate only, report warnings
+#      make formal   prove B' == B (round: all inputs; core: all states)
+#      make gatesim  synthesised netlists under the RTL testbenches
+#      make cosim    unmodified board program against the RTL (virtual board)
+#      make openflow 2x2 + B' placed and routed on XC7Z020 (~30 min)
 #      make clean    remove build products
 #=============================================================================
 
@@ -35,7 +39,7 @@ SYS_RTL  := $(CORE_RTL) \
 
 IV := iverilog -g2012 -Wall
 
-.PHONY: all sim sched cslow sys sysB sysC sysD soak swtest model wave lint clean
+.PHONY: formal gatesim cosim openflow all sim sched cslow sys sysB sysC sysD soak swtest model wave lint clean
 
 all: model sim sched cslow sys sysB sysC sysD soak swtest
 	@echo ""
@@ -149,3 +153,22 @@ lint:
 clean:
 	@rm -f sim/*.vvp sim/*.vcd sim/swtest
 	@echo cleaned
+
+#-----------------------------------------------------------------------------
+# Beyond RTL simulation -- all open-source, see openflow/README.md for setup
+#-----------------------------------------------------------------------------
+formal:
+	yowasp-yosys -q -l formal/equiv_round.log formal/equiv_round.ys
+	@grep -q "SUCCESS" formal/equiv_round.log && echo "round  : B' == B for all inputs  PROVEN"
+	yowasp-yosys -q -l formal/equiv_B_Bsched.log formal/equiv_B_Bsched.ys
+	@grep -q "Equivalence successfully proven" formal/equiv_B_Bsched.log && echo "core   : B' == B in every state   PROVEN"
+
+gatesim:
+	openflow/gatesim.sh
+
+cosim:
+	cosim/run_cosim.sh
+
+openflow:
+	openflow/build_open.sh
+

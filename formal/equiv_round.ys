@@ -1,0 +1,21 @@
+# Combinational proof, round level: for ALL 2^(32*11) inputs,
+#   sha256_round_comb(h, K, W)  ==  sha256_round_comb_hkw(hkw = h + K + W)
+# i.e. hoisting h + K + W out of T1 never changes a single output bit.
+read_verilog -sv rtl/sha256_functions.v
+read_verilog -sv <<EOT
+module round_pair (
+    input  [31:0] a, b, c, d, e, f, g, h, k, w,
+    output        same
+);
+    wire [255:0] o1, o2;
+    sha256_round_comb r1 (.a_in(a), .b_in(b), .c_in(c), .d_in(d), .e_in(e), .f_in(f), .g_in(g), .h_in(h),
+        .kt(k), .wt(w), .a_out(o1[255:224]), .b_out(o1[223:192]), .c_out(o1[191:160]), .d_out(o1[159:128]),
+        .e_out(o1[127:96]), .f_out(o1[95:64]), .g_out(o1[63:32]), .h_out(o1[31:0]));
+    sha256_round_comb_hkw r2 (.a_in(a), .b_in(b), .c_in(c), .d_in(d), .e_in(e), .f_in(f), .g_in(g),
+        .hkw(h + k + w), .a_out(o2[255:224]), .b_out(o2[223:192]), .c_out(o2[191:160]), .d_out(o2[159:128]),
+        .e_out(o2[127:96]), .f_out(o2[95:64]), .g_out(o2[63:32]), .h_out(o2[31:0]));
+    assign same = (o1 == o2);
+endmodule
+EOT
+prep -flatten -top round_pair
+sat -verify -prove same 1 -show-inputs

@@ -1,0 +1,270 @@
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+
+-- Executing script file `formal/equiv_round.ys' --
+
+1. Executing Verilog-2005 frontend: rtl/sha256_functions.v
+Parsing SystemVerilog input from `rtl/sha256_functions.v' to AST representation.
+Generating RTLIL representation for module `\sha256_ch'.
+Generating RTLIL representation for module `\sha256_maj'.
+Generating RTLIL representation for module `\sha256_big_sigma0'.
+Generating RTLIL representation for module `\sha256_big_sigma1'.
+Generating RTLIL representation for module `\sha256_small_sigma0'.
+Generating RTLIL representation for module `\sha256_small_sigma1'.
+Generating RTLIL representation for module `\sha256_k_rom'.
+Generating RTLIL representation for module `\sha256_round_comb'.
+Generating RTLIL representation for module `\sha256_round_comb_hkw'.
+Successfully finished Verilog frontend.
+
+2. Executing Verilog-2005 frontend: <<EOT
+Parsing SystemVerilog input from `<<EOT' to AST representation.
+Generating RTLIL representation for module `\round_pair'.
+Successfully finished Verilog frontend.
+
+3. Executing PREP pass.
+
+3.1. Executing HIERARCHY pass (managing design hierarchy).
+
+3.1.1. Analyzing design hierarchy..
+Top module:  \round_pair
+Used module:     \sha256_round_comb_hkw
+Used module:         \sha256_maj
+Used module:         \sha256_ch
+Used module:         \sha256_big_sigma0
+Used module:         \sha256_big_sigma1
+Used module:     \sha256_round_comb
+
+3.1.2. Analyzing design hierarchy..
+Top module:  \round_pair
+Used module:     \sha256_round_comb_hkw
+Used module:         \sha256_maj
+Used module:         \sha256_ch
+Used module:         \sha256_big_sigma0
+Used module:         \sha256_big_sigma1
+Used module:     \sha256_round_comb
+Removing unused module `\sha256_k_rom'.
+Removing unused module `\sha256_small_sigma1'.
+Removing unused module `\sha256_small_sigma0'.
+Removed 3 unused modules.
+
+3.2. Executing PROC pass (convert processes to netlists).
+
+3.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+3.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+3.2.4. Executing PROC_INIT pass (extract init attributes).
+
+3.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+3.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+3.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+3.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+3.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module round_pair.
+Optimizing module sha256_round_comb_hkw.
+Optimizing module sha256_round_comb.
+Optimizing module sha256_big_sigma1.
+Optimizing module sha256_big_sigma0.
+Optimizing module sha256_maj.
+Optimizing module sha256_ch.
+
+3.3. Executing FLATTEN pass (flatten design).
+Deleting now unused module sha256_round_comb_hkw.
+Deleting now unused module sha256_round_comb.
+Deleting now unused module sha256_big_sigma1.
+Deleting now unused module sha256_big_sigma0.
+Deleting now unused module sha256_maj.
+Deleting now unused module sha256_ch.
+<suppressed ~10 debug messages>
+
+3.4. Executing FUTURE pass.
+
+3.5. Executing OPT_EXPR pass (perform const folding).
+Optimizing module round_pair.
+
+3.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \round_pair..
+Removed 0 unused cells and 18 unused wires.
+<suppressed ~1 debug messages>
+
+3.7. Executing CHECK pass (checking for obvious problems).
+Checking module round_pair...
+Found and reported 0 problems.
+
+3.8. Executing OPT pass (performing simple optimizations).
+
+3.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module round_pair.
+
+3.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\round_pair'.
+Computing hashes of 51 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Computing hashes of 44 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Computing hashes of 40 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Computing hashes of 38 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Computing hashes of 37 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+<suppressed ~42 debug messages>
+Removed a total of 14 cells.
+
+3.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \round_pair..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+3.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \round_pair.
+Performed a total of 0 changes.
+
+3.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\round_pair'.
+Computing hashes of 37 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Removed a total of 0 cells.
+
+3.8.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \round_pair..
+Removed 0 unused cells and 9 unused wires.
+<suppressed ~1 debug messages>
+
+3.8.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module round_pair.
+
+3.8.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.8.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \round_pair..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+3.8.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \round_pair.
+Performed a total of 0 changes.
+
+3.8.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\round_pair'.
+Computing hashes of 37 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Removed a total of 0 cells.
+
+3.8.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \round_pair..
+
+3.8.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module round_pair.
+
+3.8.14. Finished fast OPT passes. (There is nothing left to do.)
+
+3.9. Executing WREDUCE pass (reducing word size of cells).
+
+3.10. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \round_pair..
+
+3.11. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+3.12. Executing OPT pass (performing simple optimizations).
+
+3.12.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module round_pair.
+
+3.12.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\round_pair'.
+Computing hashes of 37 cells of `\round_pair'.
+Finding duplicate cells in `\round_pair'.
+Removed a total of 0 cells.
+
+3.12.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \round_pair..
+
+3.12.4. Finished fast OPT passes.
+
+3.13. Executing SORT pass.
+
+3.14. Printing statistics.
+
+=== round_pair ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       97 wires
+     3521 wire bits
+       83 public wires
+     3073 public wire bits
+       11 ports
+      321 port bits
+       37 cells
+       13   $add
+        5   $and
+        1   $eq
+        1   $not
+       10   $scopeinfo
+        7   $xor
+
+3.15. Executing CHECK pass (checking for obvious problems).
+Checking module round_pair...
+Found and reported 0 problems.
+
+4. Executing SAT pass (solving SAT problems in the circuit).
+Using SAT solver `minisat`.
+
+Setting up SAT problem:
+Final constraint equation: { } = { }
+Imported 37 cells to SAT database.
+Import proof-constraint: \same = 1'1
+Final proof equation: \same = 1'1
+Import show expression: \a
+Import show expression: \b
+Import show expression: \c
+Import show expression: \d
+Import show expression: \e
+Import show expression: \f
+Import show expression: \g
+Import show expression: \h
+Import show expression: \k
+Import show expression: \w
+
+Solving problem with 8347 variables and 22475 clauses..
+SAT proof finished - no model found: SUCCESS!
+
+                  /$$$$$$      /$$$$$$$$     /$$$$$$$    
+                 /$$__  $$    | $$_____/    | $$__  $$   
+                | $$  \ $$    | $$          | $$  \ $$   
+                | $$  | $$    | $$$$$       | $$  | $$   
+                | $$  | $$    | $$__/       | $$  | $$   
+                | $$/$$ $$    | $$          | $$  | $$   
+                |  $$$$$$/ /$$| $$$$$$$$ /$$| $$$$$$$//$$
+                 \____ $$$|__/|________/|__/|_______/|__/
+                       \__/                              
+
+End of script. Logfile hash: d8b07904ce, time: 104.92s, user: 104.92s, system: 0.00s
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Time spent: 99% 1x sat (104 sec), 0% 5x opt_clean (0 sec), ...

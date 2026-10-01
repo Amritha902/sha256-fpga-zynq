@@ -1,0 +1,47 @@
+
+==========================================================================
+ SHA-256 RTL VERIFICATION  —  FIPS 180-4 conformance
+==========================================================================
+VCD info: dumpfile sim/tb_sha256.vcd opened for output.
+
+LEVEL 1 : logical functions
+  [PASS]  Sigma0(6a09e667) = ce20b47e
+  [PASS]  Sigma1(6a09e667) = 55b65510
+  [PASS]  sigma0(6a09e667) = ba0cf582
+  [PASS]  sigma1(6a09e667) = cfe5da3c
+  [PASS]  Ch(all1,y,z) -> y = aaaaaaaa
+  [PASS]  Ch(all0,y,z) -> z = 55555555
+  [PASS]  Maj(1,1,0)       = ffffffff
+  [PASS]  Maj(1,0,0)       = 00000000
+  [PASS]  Sigma0(00000001) = 40080400
+
+LEVEL 2 : K constant ROM
+  [PASS]  K[ 0]            = 428a2f98
+  [PASS]  K[15]            = c19bf174
+  [PASS]  K[32]            = 27b70a85
+  [PASS]  K[63]            = c67178f2
+
+LEVEL 3 : Configuration A  (iterative, 1 round/cycle)
+  [PASS]  SHA-256("abc") single block
+  [PASS]  SHA-256("")    empty message
+  [PASS]  56-byte msg) two blocks, chained
+
+LEVEL 4 : Configuration B  (2x unrolled, 2 rounds/cycle)
+  [PASS]  SHA-256("abc") single block
+  [PASS]  SHA-256("")    empty message
+  [PASS]  56-byte msg) two blocks, chained
+
+LEVEL 5 : cross-validation
+  [PASS]  Config A and Config B produce identical digests
+
+LEVEL 6 : cycle counts per 512-bit block
+          Config A : 66 cycles
+          Config B : 34 cycles
+  [PASS]  66 vs 34 cycles as designed (1.94x fewer cycles)
+
+==========================================================================
+ CHECKS RUN : 21      FAILURES : 0
+ RESULT     : ALL CHECKS PASSED
+==========================================================================
+
+reports_gatesim/tb_sha256_sched.v:283: $finish called at 5276000 (1ps)

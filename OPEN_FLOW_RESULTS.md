@@ -10,7 +10,7 @@ Run: 1 October 2026, in a cloud container, without Vivado. Flow and setup: `open
 | Place, route, timing | nextpnr-xilinx (openXC7) with the Project X-Ray database |
 | Constraint | 250 MHz for every config, deliberately unreachable, as in the Vivado script |
 | Statistic | **median Fmax over 5 placement seeds**; every seed is in `reports_open/seeds.csv` |
-| RTL verification at the time of the run | 103 RTL + 26 B′ + 21 software checks, all passing (`make all sched`) |
+| Verification | 129 RTL + 21 software + 67 gate-level checks, 2 formal proofs, virtual board for A–D, all passing |
 
 ## The measurement
 
@@ -105,6 +105,52 @@ orthogonal on this flow. That matches the decision to drop orthogonality as a cl
   area-efficient option here.
 - **System level** (measured AXI cycles): C is best at 1.67× A, because it amortises the streaming
   overhead over two blocks.
+
+## Verification beyond RTL simulation
+
+Everything below runs in the same container with free tools. Use `make formal`, `make gatesim`
+and `make cosim`.
+
+| Layer | Tool | Result |
+|---|---|---|
+| RTL simulation | Icarus Verilog | **129 / 129** checks: 103 for A–D plus 26 for B′. The race-free testbench still gives 66 and 34 cycles |
+| Software reference | gcc | **21 / 21** |
+| **Formal equivalence, round** | Yosys `sat -prove` | **PROVEN**: `round_comb(h,K,W) == round_comb_hkw(h+K+W)` for all 2³⁵² inputs |
+| **Formal equivalence, whole core** | Yosys `equiv_make / equiv_simple / equiv_induct` | **PROVEN**: B′ ≡ B in every reachable state (4599 equivalence points). B′ is the same function with a different adder order |
+| **Gate-level simulation** | Yosys netlist (LUT6/CARRY4/FDCE) under Icarus with the Xilinx cell models | **67 / 67**: A, B, B′, C and D netlists pass the RTL testbenches unchanged, so synthesis preserved function |
+| **Virtual board** | Verilator model of `sha256_top`, driven by the **unmodified** `sw/main.c` and driver | **All four configs: ALL CONFORMANCE CHECKS PASSED**, including NIST vectors, the register self-test, dual-stream pairing, the benchmark, and `abc` typed at the emulated UART |
+
+### What the new layers caught
+
+1. **A driver bug, fixed.** On a Config C or D bitstream, `sha256_hw_hash()` hung: it streamed one
+   message into a core that only accepts block *pairs*. No RTL testbench called the single-message
+   API on a dual core; the virtual board does, because `main.c` does. The fix is in `sw/sha256_hw.c`:
+   on a dual build, a lone message is hashed paired with itself, wasting one slot as documented.
+   **This would have failed on the board.**
+2. **A testbench race, fixed.** `tb_sha256.v` drove `block_valid` with a blocking write *at* the
+   clock edge. RTL simulation happened to resolve the race in the favourable order; the gate-level
+   netlist did not, and counted 67 and 35. The testbench now drives and samples 1 ns after each
+   edge. The architecture is unchanged: 66 and 34 cycles per block, confirmed at RTL, at gate level
+   and on the virtual board's CYCLE_CNT.
+3. **A wrong label, fixed.** The 112-byte NIST vector pads to 2 blocks, not the 3 that `main.c`
+   printed.
+
+### System cycles read from the accelerator's own CYCLE_CNT (virtual board)
+
+| | A | B | C (per message) | D (per message) |
+|---|---:|---:|---:|---:|
+| cycles per block over AXI | 84 | 52 | 50 | 34 |
+| figure used in `compare_configs.py` | 85 | 53 | 51 | 35 |
+
+The two counters differ by exactly one cycle, the same in every configuration, so no ratio or
+threshold changes.
+
+### What still needs the real hardware and Vivado
+
+- Vivado's synthesiser (the open question in §4) and Vivado's Fmax: `vivado/build_core_ooc.tcl`.
+- The Zynq block design (PS7 configuration and the AXI DMA IP). These are Xilinx IP with no
+  open-source equivalent, so no board bitstream for the full system can be built here.
+- Real PS7 bus latency, the A9's software speed (which sets the speedup figure), and on-board power.
 
 ## Reproduce
 
