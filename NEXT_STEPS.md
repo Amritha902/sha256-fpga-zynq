@@ -21,7 +21,9 @@ level with `origin/master`.
 | Base-paper comparison in ngspice | done |
 | Adder-bypass study (rejected, with evidence) | done |
 | Review slides for the 2×2 | done |
-| **Synthesis, Fmax, area, board bring-up** | **not started — see §1** |
+| **Synthesis, Fmax, area — open-source flow on XC7Z020** | **done, see `OPEN_FLOW_RESULTS.md`**: B/A = 0.673 (clears both thresholds), C/A = 0.999 |
+| Synthesis, Fmax, area — Vivado | not started — see §1; still the reference result |
+| Board bring-up | not started |
 
 Reproduce the whole verification suite in one command:
 

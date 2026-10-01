@@ -258,6 +258,8 @@ Measuring both axes from one round module under one constraint set is what separ
 
 **Scope of the measurement, stated plainly.** Generic SPICE LEVEL-1 models, not a foundry PDK; ripple-carry adders, not Xilinx CARRY4 chains. What transfers is the shape of the curve (linear, R² = 0.998) and the ratios between configurations. No absolute nanoseconds or MHz are claimed from it, and it predicts the Vivado result rather than replacing it.
 
+**Measured on the FPGA (open-source flow, XC7Z020, median of 5 seeds — `OPEN_FLOW_RESULTS.md`).** Fmax(B)/Fmax(A) = **0.673**, which clears both thresholds; Fmax(C)/Fmax(A) = **0.999**. A hand-scheduled B′ measures 0.651, no better than B. The synthesiser had already turned each five-operand T1 sum into an adder tree, so RTL written in naive order landed at the scheduled bound (ngspice 0.680, within 1%). The finding therefore holds in its precise form: **the unrolling outcome is decided by how synthesis structures the T1 adder, not by unroll depth and not by the operand order in the RTL.** Suhaili & Julai's frequency *increase* does not reproduce (0.673 < 1), but their throughput gain does. Vivado's synthesiser remains the open question.
+
 **The consequence for the project is that the deliverable no longer depends on B's outcome.** B's thresholds stay exactly as pre-registered and may still be missed; wherever B lands is explained by the measured mechanism, and the column results are structural either way.
 
 ### 5.5 Why this matters now

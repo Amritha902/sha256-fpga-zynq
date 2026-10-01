@@ -179,6 +179,13 @@ Documented in full in `ADDER_BYPASS_FINDING.md`. Two independent kills:
 
 ## 9. The one route that remains open, and its honest odds
 
+> **Update, 1 Oct 2026 — open-source FPGA run (`OPEN_FLOW_RESULTS.md`).** On the XC7Z020, B/A =
+> 0.673. Suhaili & Julai's Fmax increase does not reproduce, but the result is fully explained by
+> synthesis building an adder tree (it lands within 1% of ngspice's scheduled bound), and
+> hand-scheduling the RTL (B′) gains nothing. That is *explicable under the prior art* — Chaves 2006
+> and Yao 2025 already teach the scheduling — so there is no teaching-away argument. **Patent status
+> is unchanged: not patentable.** The result is a research finding, not an inventive step.
+
 **A measured Zynq result that contradicts Suhaili & Julai (2022).**
 
 If the four Vivado runs show unrolling behaving in a way the published record
