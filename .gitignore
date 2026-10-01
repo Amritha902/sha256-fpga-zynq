@@ -2,6 +2,7 @@
 sim/*.vvp
 sim/*.vcd
 sim/swtest
+sim/*_sched.v
 spice/run/
 
 # Vivado
