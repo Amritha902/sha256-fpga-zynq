@@ -1,0 +1,28 @@
+
+8. Printing statistics.
+
+=== sha256_core_iter ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     3302 wires
+     7488 wire bits
+       17 public wires
+     1033 public wire bits
+        8 ports
+      774 port bits
+     3839 cells
+        8   $scopeinfo
+        1   BUFG
+       98   CARRY4
+      898   FDCE
+      137   FDPE
+      516   IBUF
+        2   INV
+      310   LUT2
+      176   LUT3
+      336   LUT4
+      253   LUT5
+      846   LUT6
+      258   OBUF
+

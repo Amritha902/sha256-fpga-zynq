@@ -1,0 +1,28 @@
+
+8. Printing statistics.
+
+=== sha256_core_unroll2 ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     3831 wires
+     9162 wire bits
+       19 public wires
+     1071 public wire bits
+        8 ports
+      774 port bits
+     4256 cells
+       16   $scopeinfo
+        1   BUFG
+      130   CARRY4
+      898   FDCE
+      137   FDPE
+      516   IBUF
+        2   INV
+      347   LUT2
+      194   LUT3
+      340   LUT4
+      475   LUT5
+      942   LUT6
+      258   OBUF
+
