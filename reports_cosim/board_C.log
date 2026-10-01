@@ -58,9 +58,9 @@
   blocks per message  : 65
   accelerator cycles  : 6500  (last message)
 
-  hardware  : 0.004669 s   449.17 Mbit/s
-  software  : 0.001178 s   1779.78 Mbit/s
-  speedup   : 0.25x
+  hardware  : 0.004660 s   450.00 Mbit/s
+  software  : 0.001092 s   1920.57 Mbit/s
+  speedup   : 0.23x
 
   NOTE: a modest speedup is EXPECTED and correct.  SHA-256 is
   32-bit add, XOR and rotate -- exactly what an ALU does in

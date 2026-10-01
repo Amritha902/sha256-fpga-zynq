@@ -162,7 +162,7 @@ def waveform(v, vcd, secs=7.0):
             ("a_dv", "digest_valid"), ("u_iter.h0", "H0")]
     vals = parse_vcd(vcd, {s for s, _ in sigs})
     ups = [t for t, x in vals.get("a_bv", []) if x == "1"]
-    t0 = ups[1] - 30000 if len(ups) > 1 else 0          # second block: "abc"
+    t0 = ups[0] - 30000 if ups else 0                   # first block: "abc"
     t1 = t0 + 700000 + 60000
     fig, axes = plt.subplots(len(sigs), 1, figsize=(12.8, 7.2), dpi=100, sharex=True)
     fig.patch.set_facecolor("#1e2329")
@@ -192,7 +192,7 @@ def waveform(v, vcd, secs=7.0):
             for i, (t, x) in enumerate(seq):
                 tn = seq[i + 1][0] if i + 1 < len(seq) else t1
                 ax.fill_between([t / 1000, tn / 1000], 0.15, 0.85, color="#2f6f4e", alpha=0.6)
-                if (tn - t) > 25000 or s == "u_iter.h0":
+                if (tn - t) > 25000:
                     try:
                         txt = format(int(x, 2), "x") if s == "u_iter.h0" else str(int(x, 2))
                     except ValueError:

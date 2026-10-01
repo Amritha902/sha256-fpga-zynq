@@ -42,8 +42,8 @@
   blocks per message  : 65
   accelerator cycles  : 5460  (last message)
 
-  hardware  : 0.003648 s   574.82 Mbit/s
-  software  : 0.000987 s   2123.89 Mbit/s
+  hardware  : 0.003649 s   574.70 Mbit/s
+  software  : 0.000987 s   2125.18 Mbit/s
   speedup   : 0.27x
 
   NOTE: a modest speedup is EXPECTED and correct.  SHA-256 is
