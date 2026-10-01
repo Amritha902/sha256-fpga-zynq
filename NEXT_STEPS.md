@@ -190,10 +190,9 @@ Review 1 deck. Rebuild after edits with
   (author list), [17] Padhi & Chaudhari (authors, volume, pages), [22] Wang et
   al. and [23] Stevens et al. (not independently re-verified). Resolve before
   submission; do not let a viva find them first.
-- [ ] **The survey still frames the contribution around orthogonality.** The
-  ngspice result supersedes that with something stronger and measured — the
-  operand-scheduling finding. §5.4 and §6 want a pass to match
-  `BASE_PAPER_COMPARISON.md`.
+- [x] **Survey reframed around the operand-scheduling finding.** §3.2 (fourth
+  explanation), §5.4, §6 claim 4, §7, §8 and §11 now match
+  `BASE_PAPER_COMPARISON.md`; orthogonality is dropped as a claim.
 - [ ] **Ask the professor: a filed application, or a granted patent?** They are
   very different asks and change what to optimise for. VIT's IPR policy §9 says
   the Institute bears the full cost and takes assignment, with a 60:40 revenue

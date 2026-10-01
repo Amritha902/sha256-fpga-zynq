@@ -88,13 +88,14 @@ A published, peer-reviewed, recent result contradicts the premise. That is not a
 
 ### 3.2 Why the contradiction is unresolved in the source
 
-Three explanations are consistent with what the paper reports, and the paper does not distinguish between them:
+Four explanations are consistent with what the paper reports, and the paper does not distinguish between them:
 
 1. **The comparison may not be constraint-matched.** Three designs synthesised as three separate projects can differ in effort level, strategy, optimisation directives and floorplan. A frequency difference then measures the toolchain, not the architecture.
 2. **The device may absorb the second chain.** Arria II GX adaptive logic modules and Altera's carry-chain structure are not Xilinx 7-series CLBs with CARRY4 primitives. Whether a second five-input adder chain fits inside the same timing budget is a *device-family* question, and an Altera answer does not transfer to a Zynq-7020.
 3. **The designs may not be architecturally isolated.** If the unfolded variant differs from the iterative one in any way beyond unroll depth — a retimed register, a restructured adder, a different schedule buffer — the measurement attributes to unrolling an effect caused by something else.
+4. **The adder chain may be scheduled well.** In the second round of an unrolled pair, three of T1's five operands are available early. A chain that sums them first carries ~2 extra adds on the late path instead of 5. This project's ngspice study measures the effect: the same unrolled round gives an Fmax ratio of 0.500 with naive operand order and 0.680 with the operands reordered — see §5.4. A synthesiser that happens to find the good ordering would produce a frequency result very different from the structural prediction, without any device effect at all.
 
-Distinguishing (1) from (2) from (3) requires an experiment where **the round logic is provably identical and the constraints are provably identical**. That experiment has not been published. It is what this project is.
+Distinguishing (1) from (2) from (3) from (4) requires an experiment where **the round logic is provably identical and the constraints are provably identical**. That experiment has not been published. It is what this project is.
 
 ### 3.3 Gamgam (2023) — unrolling *and* pipelining, on the closest architecture
 
@@ -133,7 +134,7 @@ These results are not the frontier. They are retained because they explain *why*
 
 | Ref | Work | Contribution | Why it is still cited |
 |---|---|---|---|
-| [10] | **Chaves, Kuzmanov, Sousa & Vassiliadis**, CHES 2006 | **Operation rescheduling** — precompute part of T1 one cycle ahead so the adder chain splits across the register boundary, shortening the critical path without changing the round count. Also applies carry-save addition in the round. Reports >50% improvement for SHA-256 over commercial cores on Virtex-II Pro | The canonical answer to "how would you shorten the path without unrolling?" — and the basis of this project's entire cost argument |
+| [10] | **Chaves, Kuzmanov, Sousa & Vassiliadis**, CHES 2006 | **Operation rescheduling** — precompute part of T1 one cycle ahead so the adder chain splits across the register boundary, shortening the critical path without changing the round count. Also applies carry-save addition in the round. Reports >50% improvement for SHA-256 over commercial cores on Virtex-II Pro | The canonical answer to "how would you shorten the path without unrolling?" — and the basis of this project's entire cost argument, and of the §5.4 operand-scheduling finding |
 | [11] | **McEvoy, Crowe, Murphy & Marnane**, ISVLSI 2006 | A VLSI architecture for SHA-256/512 that **combines pipelining and unrolling**, including a 2×-unrolled-pipelined SHA-2 core | **Corrected characterisation.** The Review 1 survey described this as a paper about balancing the message schedule against the compression function. It is not. It is a 2006 unrolled-and-pipelined SHA-2 paper, and it is therefore prior art for both Configuration B and the pipelined-interleaving extension. Misdescribing it would have concealed the closest classical prior art |
 | [12] | **Dadda, Macchetti & Owen**, DATE 2004 Designers' Forum, pp. 70–76 | Carry-save adder trees in the compressor and expander; critical-path reduction in 0.13 µm | CSA is the standard mitigation for the T1 bottleneck. **Caution:** a near-twin paper by the same authors exists at GLSVLSI 2004 (DOI `10.1145/988952.989053`) with a similar title — cite the correct one |
 | [13] | **Michail, Kakarountas, Milidonis & Goutis**, IEEE TDSC 6(4):255–268, 2009 | Systematic top-down methodology for unrolling and pipelining hashing cores | The methodological ancestor. Its comparisons span papers and devices; this project's span one board and one constraint set |
@@ -215,29 +216,47 @@ The interleaved configurations run two independent messages through the round in
 
 All four are built from a single out-of-context Tcl script under an identical, deliberately aggressive timing constraint, so every configuration is pushed to its own limit under the same pressure. The number of round instances and the placement of registers are the only variables.
 
-### 5.4 The finding: the two axes behave differently, and orthogonally
+### 5.4 The finding: unrolling is decided by operand scheduling; interleaving is structural
 
-Read the grid by row and by column, and the claim falls out before any number is measured.
+Read the grid by row and by column, then measure the row.
 
-**Configuration B trades frequency for cycles.** It buys a 1.94× cycle reduction and pays for it in critical path. Whether the trade is profitable is a genuine empirical question with a threshold that can come out either way — which is exactly what makes it a falsifiable prediction worth pre-registering.
+**Configuration B trades frequency for cycles.** It buys a 1.94× cycle reduction and pays for it in critical path. How much it pays is not fixed by the architecture, and that has now been measured.
 
-**Configuration C trades area for frequency.** Its combinational depth is one round instance, identical to Configuration A, so its Fmax is not traded away at all; it pays instead in registers — two working-variable banks, two chaining-value sets, two schedule windows. It then retires a block every 33 effective cycles instead of 66.
+**The transistor-level measurement.** The round's critical path — Σ1 followed by a chain of 32-bit adds — was simulated in ngspice at 180 nm for chain depths 1 to 10 (`BASE_PAPER_COMPARISON.md`). The least-squares fit is
 
-So the interleaved configurations' advantage is **structural rather than empirical**: shorter effective cycle count at unchanged combinational depth. Barring a build error, they cannot lose. A measurement showing C below A, or D below B, indicates a constraint-set problem or a pipeline register retimed away — not an architectural failure.
+> delay(n) = 0.2110 ns + n × 0.3169 ns,   R² = 0.998
 
-**The orthogonality claim.** Because the interleave register does not touch the combinational path, the gain from moving down a column should be the same regardless of which column it is:
+Delay is linear in adder-chain depth. Modelling each configuration explicitly (B carries two Σ1 networks):
 
-> gain(A→C)  ≈  gain(B→D)  ≈  2×,   independent of unroll depth
->
-> gain(A→B)  ≈  gain(C→D),           independent of interleave depth
+| | Σ1 | adds on path | Path (ns) | Fmax vs A | vs 0.515 (core) | vs 0.624 (system) |
+|---|---:|---:|---:|---:|---|---|
+| **A** iterative | 1 | 5 | 1.796 | 1.000 | — | — |
+| **B** unrolled, naive operand order | 2 | 10 | 3.591 | **0.500** | misses | misses |
+| **B** unrolled, reordered | 2 | 7 | 2.641 | **0.680** | clears | clears |
+| **C** interleaved | 1 | 5 | 1.796 | 1.000 | — | — |
 
-Measuring both axes independently, from one round module under one constraint set, is what separates this from a benchmark table. **No published SHA-256 study has done it.** The existing work samples single points: Suhaili & Julai vary U only [6]; McEvoy [11] and Gamgam [7] combine unrolling with pipelining at one operating point each; nobody reports the grid.
+**The same unrolled architecture misses both pre-registered thresholds or clears both, depending only on the order in which the adder chain sums its operands.** The reordering is available because, in the second round of an unrolled pair, three of T1's five operands do not depend on the first round's result: `h₂ = g₁` is a rename, `K[t+1]` is a constant, and `W[t+1]` comes from the independently running message schedule. Summing those three first leaves only two adds on the late path. This is Chaves *et al.*'s operation rescheduling [10] applied inside the unrolled pair rather than across a register boundary — the technique is theirs; its effect on the unrolling verdict is what is measured here.
 
-If confirmed, the statement is:
+Whether the synthesiser finds that ordering is a property of the toolchain, not of the architecture. So the hypothesis is sharpened rather than abandoned:
 
-> **Unroll depth and interleave depth are orthogonal in SHA-256. Unrolling is a gamble on the device — it may or may not pay, and the recent literature disagrees with theory about which. Interleaving is a guaranteed linear area-for-throughput trade, and it holds at any unroll depth.**
+> **Unrolling SHA-256 loses unless the adder chain is scheduled to hoist the round-independent operands — and whether that happens is decided by the synthesiser, not by unroll depth.**
 
-**The consequence for the project is that the deliverable no longer depends on B's outcome.** B's threshold stays exactly as pre-registered and may still be missed; that remains a valid reportable finding. The column results supply a positive, quotable finding either way.
+That is also a concrete, measured mechanism by which Suhaili & Julai [6] could report a frequency improvement while the structural argument predicts a fall — the mechanism §3.2's fourth explanation names, and one their separately built designs cannot separate from a device or toolchain effect. The Vivado measurement should land B between 0.500 and 0.680; where it lands says how well Vivado scheduled the chain.
+
+**Configuration C trades area for cycles, not frequency.** Its combinational depth is one round instance, identical to A, so its Fmax ratio is **1.000 by construction**; it pays in registers — two working-variable banks, two chaining-value sets, two schedule windows — and retires a block every 33 effective cycles instead of 66. Barring a build error it cannot lose. A measurement showing C below A, or D below B, indicates a constraint-set problem or a pipeline register retimed away — not an architectural failure.
+
+**So the two levers differ in kind, not just degree:**
+
+- **Unrolling is contingent** — its payoff depends on a scheduling decision made downstream of the designer.
+- **Interleaving is structural** — no scheduling choice can undo it.
+
+This replaces the orthogonality claim of the previous draft (gain(A→C) ≈ gain(B→D), independent of unroll depth). That claim was inherited from C-slow retiming theory (Leiserson & Saxe, 1991) rather than measured, and it is a general property of retiming, not a finding about SHA-256. The contingent-versus-structural contrast is measured. The D column is still built and still reported; it is a check on C's behaviour at U = 2, not a separate claim.
+
+Measuring both axes from one round module under one constraint set is what separates this from a benchmark table. The existing work samples single points: Suhaili & Julai vary U only [6]; McEvoy [11] and Gamgam [7] combine unrolling with pipelining at one operating point each; none isolates operand order as the variable that decides the unrolling result.
+
+**Scope of the measurement, stated plainly.** Generic SPICE LEVEL-1 models, not a foundry PDK; ripple-carry adders, not Xilinx CARRY4 chains. What transfers is the shape of the curve (linear, R² = 0.998) and the ratios between configurations. No absolute nanoseconds or MHz are claimed from it, and it predicts the Vivado result rather than replacing it.
+
+**The consequence for the project is that the deliverable no longer depends on B's outcome.** B's thresholds stay exactly as pre-registered and may still be missed; wherever B lands is explained by the measured mechanism, and the column results are structural either way.
 
 ### 5.5 Why this matters now
 
@@ -260,8 +279,8 @@ Its relevance has grown sharply. FIPS 205 SLH-DSA [1] is precisely a workload of
 1. **A stated hypothesis with a numeric threshold** — 0.515 at core level, refined to 0.624 at system level — declared before measurement.
 2. **A controlled 2×2 design-space measurement.** All four configurations instantiate the same `sha256_round_comb` and build from one out-of-context script under one constraint set. No published SHA-256 study varies unroll depth and interleave depth independently on one device.
 3. **A direct re-test of a specific recent result** — Suhaili & Julai (2022) — on a different device family, with the confound removed.
-4. **An orthogonality claim about the design space**, not merely a ranking of implementations — that the frequency cost of unrolling and the area cost of interleaving are independent, so the two levers can be chosen separately.
-5. **A result that does not depend on the measurement going a particular way.** Configuration B's outcome is genuinely open; the column results are structural. The project therefore yields a positive finding without compromising the falsifiability of the pre-registered prediction.
+4. **A measured mechanism for the contradiction** — operand scheduling inside the unrolled pair moves B's Fmax ratio from 0.500 to 0.680 (ngspice, `delay(n) = 0.2110 + 0.3169n` ns, R² = 0.998), which is the difference between missing and clearing both pre-registered thresholds. Unrolling is contingent on the synthesiser; interleaving is structural. The rescheduling technique is Chaves *et al.*'s [10]; the claim is its measured effect on the unrolling verdict.
+5. **A result that does not depend on the measurement going a particular way.** Configuration B's outcome is genuinely open but already bracketed (0.500–0.680) and explained wherever it lands; the column results are structural. The project therefore yields a positive finding without compromising the falsifiability of the pre-registered prediction.
 6. **Hierarchical verification** at eight levels including per-round `a..h` and the full `W[0..63]` schedule, not end-to-end digest matching alone.
 7. **Four-way cross-validation** — bit-identical digests from A, B and both streams of C and D — an independent self-check requiring no external reference.
 8. **Honest accounting of the modest software speedup** and the structural reason for it.
@@ -278,6 +297,8 @@ Stated explicitly, because each of these has been foreclosed by a paper in this 
 | Novelty in unrolling SHA-256 on FPGA | Suhaili & Julai 2022 [6]; McEvoy et al. 2006 [11] |
 | Novelty in combining unrolling with pipelining | McEvoy et al. 2006 [11]; Gamgam 2023 [7] |
 | Novelty in multi-message interleaved hashing — **Configuration C's technique is not claimed as new** | Standard practice; [11], [7]; and prior patents including US9917689, US8856547, US7684563, US6091821. What is claimed is the controlled 2×2 measurement of it against unrolling, not inventing it |
+| Novelty in operation rescheduling / operand reordering in the T1 adder chain | Chaves et al. 2006 [10]. What is claimed is the measured effect of operand order on the unrolling verdict, not the technique |
+| Orthogonality of unroll depth and interleave depth as a general principle | C-slow retiming theory, Leiserson & Saxe 1991. Dropped from the claims in favour of the measured result in §5.4 |
 | A record throughput | Padhi & Chaudhari 2019 [17] report 154.88 Gbps on Kintex-7 |
 | Being first to put SHA-256 on a ZedBoard | Shah, Agrawal & Shah 2026 [4] |
 | A power or energy result | Vivado's estimator is a model, not a measurement. No power claim can be defended from a ZedBoard without instrumented measurement |
@@ -296,7 +317,7 @@ The structural reason the ratio is modest: SHA-256 is built from 32-bit addition
 
 **"Suhaili & Julai got a frequency increase. Did you get it wrong?"**
 
-That is the experiment, not an embarrassment. §5.3 is the answer. If the measured ratio on Zynq-7020 falls below threshold, the finding is that the 2022 result does not generalise across device families or does not survive constraint matching — and the controlled construction is what licenses that conclusion. If it clears the threshold, the structural argument needs revision and that is a more interesting result still. **Both outcomes are publishable; neither is a failure.**
+That is the experiment, not an embarrassment. §5.3 is the answer, and §5.4 supplies a measured mechanism: operand order in the unrolled adder chain alone moves the Fmax ratio from 0.500 to 0.680, which is the difference between missing and clearing the threshold. A synthesiser that schedules the chain well can produce their result without any device effect. If the measured ratio on Zynq-7020 falls below threshold, the finding is that the 2022 result does not generalise across device families or does not survive constraint matching — and the controlled construction is what licenses that conclusion. If it clears the threshold, the structural argument needs revision and that is a more interesting result still. **Both outcomes are publishable; neither is a failure.**
 
 ---
 
@@ -344,7 +365,7 @@ Four entries carry ⚠️. Resolve them before submission; do not let a viva fin
 | Question | Answer |
 |---|---|
 | **"Hasn't unrolling SHA-256 already been done?"** | Yes — most recently by Suhaili & Julai in 2022, who reached 34 cycles per block exactly as we do, and by Gamgam in 2023. Their comparisons are between separately-built designs, so a frequency difference cannot be attributed to unroll depth rather than to the device family or the toolchain. We hold the round module and the constraint set identical so that unroll depth is the only variable, and we test whether their result reproduces. |
-| **"Suhaili and Julai say unrolling improves frequency. You predict it falls."** | Correct, and that is why the experiment is worth running. Three explanations fit their data — unmatched constraints, an Altera carry-chain effect that does not transfer to Xilinx CLBs, or architectural differences beyond unroll depth. Our construction eliminates the first and third by design and isolates the second. |
+| **"Suhaili and Julai say unrolling improves frequency. You predict it falls."** | Correct, and that is why the experiment is worth running. Four explanations fit their data — unmatched constraints, an Altera carry-chain effect that does not transfer to Xilinx CLBs, architectural differences beyond unroll depth, or a well-scheduled adder chain. We measured the last one at transistor level: operand order alone moves the unrolled Fmax ratio from 0.500 to 0.680, either side of our threshold. Our construction eliminates the first and third by design; the Vivado result, landing somewhere in 0.500–0.680, tells us how well the chain was scheduled. |
 | "Why no DSP slices?" | SHA-256 contains no multiplication — only 32-bit addition, XOR, AND and fixed bit reorderings. There is nothing for a DSP to do. |
 | "Why are the rotations free?" | ROTR and SHR are compile-time-constant bit reorderings. In fabric they are routing: zero LUTs, zero delay. Each Σ function is one 3-input XOR per bit. |
 | "Why store only 16 schedule words?" | W[t] depends only on W[t−2], W[t−7], W[t−15] and W[t−16]. A 16-deep rolling window suffices; storing all 64 wastes 1536 bits for no benefit. |
@@ -353,7 +374,7 @@ Four entries carry ⚠️. Resolve them before submission; do not let a viva fin
 | "How would you actually make this fast?" | Multi-stream interleaving through a pipelined round unit. Independent messages have no dependency, so N of them pipeline perfectly for N× throughput at N× registers and the same round logic. Published for SHA-2 by McEvoy et al. (2006) and Gamgam (2023), and newly important because FIPS 205 SLH-DSA is a workload of thousands of independent hashes. Documented future work — we do not claim it. |
 | "How would you shorten the critical path without unrolling?" | Operation rescheduling (Chaves et al., CHES 2006): precompute part of T1 one cycle ahead so the adder chain splits across the register boundary. Also carry-save adders in the five-input sum (Dadda et al., DATE 2004). |
 | "Why is padding in software?" | Deliberate scope decision. Padding is byte-alignment bookkeeping and a length counter; compression is the expensive part. A hardware padder adds control complexity and no insight into the unrolling question. Documented as future work. |
-| **"Is any of this patentable?"** | No, and we do not claim it is. Every technique here is published: unrolling [6][11], pipelining [11][7], interleaving [11][7] and prior patents, operation rescheduling [10], carry-save addition [12]. The contribution is experimental method — a pre-registered threshold, a controlled variable, and hierarchical verification — which is a research contribution, not an inventive step. |
+| **"Is any of this patentable?"** | No, and we do not claim it is. Every technique here is published: unrolling [6][11], pipelining [11][7], interleaving [11][7] and prior patents, operation rescheduling [10], carry-save addition [12]; multi-message block-by-block interleaving was sold as commercial FPGA IP by Helion Technology in 2010. The contribution is experimental method and a measured explanation — a pre-registered threshold, a controlled variable, the operand-scheduling result, and hierarchical verification — which is a research contribution, not an inventive step. See `PATENT_GRILLING.md`. |
 
 ---
 
@@ -380,7 +401,7 @@ Prefer **CHES/TCHES**, **FPL**, **FCCM**, **DATE**, **ISVLSI**, **VLSID**, **IEE
 2. **Suhaili & Julai, 2022** [6] — *the paper this project re-tests; read it first among the research papers*
 3. **Gamgam, 2023** [7] — unrolled and pipelined SHA-2, the nearest recent architecture
 4. **McEvoy et al., ISVLSI 2006** [11] — the classical unrolled-and-pipelined result; read it to see what was already known in 2006
-5. **Chaves et al., CHES 2006** [10] — operation rescheduling; the future-work citation
+5. **Chaves et al., CHES 2006** [10] — operation rescheduling; the technique behind the §5.4 finding
 6. **Shah et al., 2026** [4] and **Bal, 2026** [5] — same board, same year; know what they did
 7. **Santos Jr. et al., 2024** [3] — the frequency collapse under core replication
 8. **Ting et al., FPL 2002** [14] — the iterative baseline
