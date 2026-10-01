@@ -1,0 +1,28 @@
+
+8. Printing statistics.
+
+=== sha256_core_cslow2 ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     6146 wires
+    14338 wire bits
+       28 public wires
+     2058 public wire bits
+       11 ports
+     1543 port bits
+     7425 cells
+       15   $scopeinfo
+        1   BUFG
+      194   CARRY4
+     1786   FDCE
+      273   FDPE
+     1029   IBUF
+        2   INV
+      601   LUT2
+      384   LUT3
+      609   LUT4
+      304   LUT5
+     1713   LUT6
+      514   OBUF
+
