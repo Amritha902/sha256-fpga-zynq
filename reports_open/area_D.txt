@@ -1,0 +1,28 @@
+
+8. Printing statistics.
+
+=== sha256_core_u2c2 ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     6910 wires
+    16537 wire bits
+       31 public wires
+     2128 public wire bits
+       11 ports
+     1543 port bits
+     8379 cells
+       30   $scopeinfo
+        1   BUFG
+      258   CARRY4
+     1786   FDCE
+      273   FDPE
+     1029   IBUF
+        2   INV
+      673   LUT2
+      460   LUT3
+      619   LUT4
+      844   LUT5
+     1890   LUT6
+      514   OBUF
+
