@@ -115,6 +115,8 @@ Combines unrolling with pipelining for SHA-256 and SHA-512, reporting that SHA-5
 | **Santos Jr. et al.**, *Sensors* [3] | 2024 | Virtex-6 | 16 clustered cores, ~1.4 Gbps, 65 cycles/hash; **Fmax collapse to ~11 MHz at 71% occupancy** |
 | **Shah, Agrawal & Shah** [4] | 2026 | **ZedBoard / Zynq-7000** | Pipelined VHDL SHA-256 on the identical board |
 | **Bal** [5] | 2026 | PYNQ-Z1 / Zynq-7000 | HLS vs RTL at 100 MHz as AXI IP; RTL more area-efficient; ~16× over software |
+| **Yao, Xue, Li & Shen** [30] — "An optimized hardware implementation of SHA-256 round computation," *The Computer Journal* 68(4):355–359 | 2025 | FPGA | **Rearranges the round's additions** so the critical path splits into two addition stages, and replaces the multi-operand adder with a 4-2 compressor; 366 MHz, 1990 Mbps, 1.86 Mbps/slice. **Operand rearrangement in the T1 chain is current published practice**, not just Chaves 2006. It is applied to one iterative round, not inside an unrolled pair |
+| **Anwar, Lara-Nino, Park & Hutter, SHARMONY** [31] — "Composing SHA-2 and SHA-3 Hardware for Crypto-Agile PQC," IACR TCHES 2026 (ePrint 2026/1572) | 2026 | Unified SHA-2/SHA-3 engine | A **"duet" execution mode runs two independent SHA-224/256 streams** in the two 32-bit halves of a 64-bit datapath, aimed at Merkle-tree hashing in hash-based PQC; 1656 Mbps for SHA-256, ahead of the OpenTitan, Caliptra, SPHINCSLET and SLotH engines. **Two-message SHA-256 processing for SLH-DSA is published at a top venue in 2026** — Configuration C's technique and its motivation are both prior art |
 
 ### 3.5 What the recent cluster establishes
 
@@ -235,7 +237,7 @@ Delay is linear in adder-chain depth. Modelling each configuration explicitly (B
 | **B** unrolled, reordered | 2 | 7 | 2.641 | **0.680** | clears | clears |
 | **C** interleaved | 1 | 5 | 1.796 | 1.000 | — | — |
 
-**The same unrolled architecture misses both pre-registered thresholds or clears both, depending only on the order in which the adder chain sums its operands.** The reordering is available because, in the second round of an unrolled pair, three of T1's five operands do not depend on the first round's result: `h₂ = g₁` is a rename, `K[t+1]` is a constant, and `W[t+1]` comes from the independently running message schedule. Summing those three first leaves only two adds on the late path. This is Chaves *et al.*'s operation rescheduling [10] applied inside the unrolled pair rather than across a register boundary — the technique is theirs; its effect on the unrolling verdict is what is measured here.
+**The same unrolled architecture misses both pre-registered thresholds or clears both, depending only on the order in which the adder chain sums its operands.** The reordering is available because, in the second round of an unrolled pair, three of T1's five operands do not depend on the first round's result: `h₂ = g₁` is a rename, `K[t+1]` is a constant, and `W[t+1]` comes from the independently running message schedule. Summing those three first leaves only two adds on the late path. This is Chaves *et al.*'s operation rescheduling [10] applied inside the unrolled pair rather than across a register boundary, and Yao *et al.* [30] show the same rearrangement is still current practice for the iterative round in 2025 — the technique is theirs; its effect on the unrolling verdict is what is measured here.
 
 Whether the synthesiser finds that ordering is a property of the toolchain, not of the architecture. So the hypothesis is sharpened rather than abandoned:
 
@@ -260,7 +262,7 @@ Measuring both axes from one round module under one constraint set is what separ
 
 ### 5.5 Why this matters now
 
-Interleaving is standard practice in high-throughput hashing hardware, including Bitcoin mining ASICs, and it is published for SHA-2 on FPGA by McEvoy et al. [11] in 2006 and by Gamgam [7] in 2023. **The project claims no novelty in the technique** — see §7.
+Interleaving is standard practice in high-throughput hashing hardware, including Bitcoin mining ASICs, and it is published for SHA-2 on FPGA by McEvoy et al. [11] in 2006 and by Gamgam [7] in 2023. Most recently, SHARMONY [31] (TCHES 2026) processes two independent SHA-256 streams at once for exactly the SLH-DSA workload described below. **The project claims no novelty in the technique** — see §7.
 
 What has not been published is the **controlled 2×2 grid**: unroll depth and interleave depth varied independently, all four cores built from one round module, on one device, under one constraint set, reported as throughput-per-LUT. Every existing comparison samples isolated points, and most span separate papers and devices.
 
@@ -296,8 +298,8 @@ Stated explicitly, because each of these has been foreclosed by a paper in this 
 | Novelty in SHA-256 architecture | The entire field |
 | Novelty in unrolling SHA-256 on FPGA | Suhaili & Julai 2022 [6]; McEvoy et al. 2006 [11] |
 | Novelty in combining unrolling with pipelining | McEvoy et al. 2006 [11]; Gamgam 2023 [7] |
-| Novelty in multi-message interleaved hashing — **Configuration C's technique is not claimed as new** | Standard practice; [11], [7]; and prior patents including US9917689, US8856547, US7684563, US6091821. What is claimed is the controlled 2×2 measurement of it against unrolling, not inventing it |
-| Novelty in operation rescheduling / operand reordering in the T1 adder chain | Chaves et al. 2006 [10]. What is claimed is the measured effect of operand order on the unrolling verdict, not the technique |
+| Novelty in multi-message interleaved hashing — **Configuration C's technique is not claimed as new** | Standard practice; [11], [7], [31] (SHARMONY's two-stream "duet" mode, 2026); and prior patents including US9917689, US8856547, US7684563, US6091821. What is claimed is the controlled 2×2 measurement of it against unrolling, not inventing it |
+| Novelty in operation rescheduling / operand reordering in the T1 adder chain | Chaves et al. 2006 [10]; Yao et al. 2025 [30]. What is claimed is the measured effect of operand order on the unrolling verdict, not the technique |
 | Orthogonality of unroll depth and interleave depth as a general principle | C-slow retiming theory, Leiserson & Saxe 1991. Dropped from the claims in favour of the measured result in §5.4 |
 | A record throughput | Padhi & Chaudhari 2019 [17] report 154.88 Gbps on Kintex-7 |
 | Being first to put SHA-256 on a ZedBoard | Shah, Agrawal & Shah 2026 [4] |
@@ -355,6 +357,8 @@ Columns: device, architecture, LUTs/slices, Fmax, throughput, throughput-per-are
 | [22] Wang, Yin & Yu, CRYPTO 2005 | ⚠️ | Widely known; **not independently re-verified in this revision** |
 | [23] Stevens et al., CRYPTO 2017 | ⚠️ | Widely known; **not independently re-verified in this revision** |
 | [24]–[29] Standards and vendor docs | ✅ | Document numbers as published |
+| [30] Yao, Xue, Li & Shen, 2025 | ✅ | *The Computer Journal* 68(4):355–359, April 2025 (OUP). Title, authors, venue and figures confirmed by search; DOI to add |
+| [31] Anwar et al., SHARMONY, 2026 | ✅ | IACR TCHES 2026; ePrint 2026/1572. Authors and duet mode confirmed by search; TCHES volume/issue to add |
 
 Four entries carry ⚠️. Resolve them before submission; do not let a viva find them first.
 
@@ -374,7 +378,7 @@ Four entries carry ⚠️. Resolve them before submission; do not let a viva fin
 | "How would you actually make this fast?" | Multi-stream interleaving through a pipelined round unit. Independent messages have no dependency, so N of them pipeline perfectly for N× throughput at N× registers and the same round logic. Published for SHA-2 by McEvoy et al. (2006) and Gamgam (2023), and newly important because FIPS 205 SLH-DSA is a workload of thousands of independent hashes. Documented future work — we do not claim it. |
 | "How would you shorten the critical path without unrolling?" | Operation rescheduling (Chaves et al., CHES 2006): precompute part of T1 one cycle ahead so the adder chain splits across the register boundary. Also carry-save adders in the five-input sum (Dadda et al., DATE 2004). |
 | "Why is padding in software?" | Deliberate scope decision. Padding is byte-alignment bookkeeping and a length counter; compression is the expensive part. A hardware padder adds control complexity and no insight into the unrolling question. Documented as future work. |
-| **"Is any of this patentable?"** | No, and we do not claim it is. Every technique here is published: unrolling [6][11], pipelining [11][7], interleaving [11][7] and prior patents, operation rescheduling [10], carry-save addition [12]; multi-message block-by-block interleaving was sold as commercial FPGA IP by Helion Technology in 2010. The contribution is experimental method and a measured explanation — a pre-registered threshold, a controlled variable, the operand-scheduling result, and hierarchical verification — which is a research contribution, not an inventive step. See `PATENT_GRILLING.md`. |
+| **"Is any of this patentable?"** | No, and we do not claim it is. Every technique here is published: unrolling [6][11], pipelining [11][7], interleaving [11][7] and prior patents, operation rescheduling [10][30], carry-save addition [12]; two-stream SHA-256 for SLH-DSA [31]; multi-message block-by-block interleaving was sold as commercial FPGA IP by Helion Technology in 2010. The contribution is experimental method and a measured explanation — a pre-registered threshold, a controlled variable, the operand-scheduling result, and hierarchical verification — which is a research contribution, not an inventive step. See `PATENT_GRILLING.md`. |
 
 ---
 
@@ -404,9 +408,10 @@ Prefer **CHES/TCHES**, **FPL**, **FCCM**, **DATE**, **ISVLSI**, **VLSID**, **IEE
 5. **Chaves et al., CHES 2006** [10] — operation rescheduling; the technique behind the §5.4 finding
 6. **Shah et al., 2026** [4] and **Bal, 2026** [5] — same board, same year; know what they did
 7. **Santos Jr. et al., 2024** [3] — the frequency collapse under core replication
-8. **Ting et al., FPL 2002** [14] — the iterative baseline
-9. **NIST FIPS 205** [1] — why hash throughput matters again
-10. **Xilinx UG901** [28] and **PG021** [26] — before the K-ROM decision and before touching the DMA
+8. **SHARMONY, 2026** [31] and **Yao et al., 2025** [30] — the two newest papers that overlap this project; read before any novelty question
+9. **Ting et al., FPL 2002** [14] — the iterative baseline
+10. **NIST FIPS 205** [1] — why hash throughput matters again
+11. **Xilinx UG901** [28] and **PG021** [26] — before the K-ROM decision and before touching the DMA
 
 ---
 
